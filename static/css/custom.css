@@ -1,0 +1,367 @@
+/* Football Academic Management System Custom Styles */
+/* Using Bootstrap's CSS variables for dark theme consistency */
+
+/* Football-themed enhancements */
+body {
+    background: var(--bs-dark);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Football field pattern background for headers */
+.bg-success {
+    background: linear-gradient(
+        90deg,
+        var(--bs-success) 0%,
+        #28a745 50%,
+        var(--bs-success) 100%
+    ) !important;
+}
+
+/* Enhanced card styling */
+.card {
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+}
+
+/* Football field lines decoration */
+.card-header.bg-success::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 10px,
+        rgba(255, 255, 255, 0.3) 10px,
+        rgba(255, 255, 255, 0.3) 20px
+    );
+}
+
+/* Enhanced button styles */
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Grade badges with football styling */
+.badge {
+    font-size: 0.85em;
+    padding: 0.5em 0.75em;
+    border-radius: 20px;
+}
+
+/* Attendance percentage styling */
+.attendance-percentage {
+    position: relative;
+    display: inline-block;
+}
+
+.attendance-percentage::after {
+    content: '⚽';
+    margin-left: 5px;
+    opacity: 0.6;
+}
+
+/* Navigation enhancements */
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.navbar-brand i {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Table enhancements */
+.table-hover tbody tr:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    transform: scale(1.01);
+    transition: all 0.2s ease-in-out;
+}
+
+/* Progress bars with football theme */
+.progress {
+    height: 8px;
+    border-radius: 10px;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.progress-bar {
+    background: linear-gradient(45deg, var(--bs-success), #20c997);
+    border-radius: 10px;
+}
+
+/* Modal enhancements */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    border-radius: 15px 15px 0 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Form styling improvements */
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--bs-primary);
+    box-shadow: 0 0 0 0.2rem rgba(var(--bs-primary-rgb), 0.25);
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Alert styling */
+.alert {
+    border-radius: 10px;
+    border: none;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+/* Stats card animations */
+.stats-card {
+    background: linear-gradient(135deg, 
+        rgba(var(--bs-primary-rgb), 0.1), 
+        rgba(var(--bs-success-rgb), 0.1));
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+}
+
+/* Footer styling */
+footer {
+    background: linear-gradient(135deg, var(--bs-dark), #2c3e50) !important;
+    border-top: 2px solid var(--bs-success);
+}
+
+/* Loading animations */
+.loading {
+    position: relative;
+    overflow: hidden;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent
+    );
+    animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+    0% {
+        left: -100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Print styles */
+@media print {
+    .navbar, .btn, .modal, .alert {
+        display: none !important;
+    }
+    
+    .card {
+        border: 1px solid #000 !important;
+        box-shadow: none !important;
+    }
+    
+    body {
+        background: white !important;
+        color: black !important;
+    }
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .table-responsive {
+        border-radius: 8px;
+    }
+    
+    .btn {
+        margin-bottom: 0.5rem;
+        min-height: 44px; /* Better touch target for mobile */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .form-control, .form-select {
+        min-height: 44px; /* Better touch target for mobile */
+    }
+}
+
+/* Accessibility improvements */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Focus indicators */
+.btn:focus,
+.form-control:focus,
+.form-select:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+}
+
+/* Navbar Horizontal Alignment for Desktop */
+@media (min-width: 992px) {
+    .navbar-nav .nav-link {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        white-space: nowrap;
+    }
+    
+    .navbar-nav .nav-link i {
+        margin-right: 0.5rem !important;
+        margin-bottom: 0 !important;
+        font-size: 1rem;
+    }
+
+    .navbar-nav .dropdown-menu {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        margin-top: 10px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .card {
+        border: 2px solid var(--bs-primary);
+    }
+    
+    .btn {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Mobile Bottom Navigation Styles */
+body {
+    /* Add padding to the bottom so content isn't hidden behind the bottom nav */
+    padding-bottom: 70px;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1030;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0.5rem 0;
+    /* Extra padding for devices with safe area (like iPhones with home indicator) */
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+    background: linear-gradient(90deg, var(--bs-success) 0%, #28a745 50%, var(--bs-success) 100%) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bottom-nav .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    flex: 1;
+}
+
+.bottom-nav .nav-item i {
+    font-size: 1.2rem;
+    margin-bottom: 3px;
+}
+
+.bottom-nav .nav-item.active,
+.bottom-nav .nav-item:hover {
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+.bottom-nav .nav-item.active i {
+    color: #ffc107; /* Highlight active tab icon with a golden color */
+    text-shadow: 0 0 10px rgba(255,193,7, 0.5);
+}
+
+/* Mobile Safari safe area fixes for modal/offcanvas */
+.offcanvas-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (min-width: 992px) {
+    body {
+        padding-bottom: 0;
+    }
+}

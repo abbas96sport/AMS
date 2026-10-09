@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Create New Grade System - Academic System{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('grade_system_list') }}">Grade Systems</a></li>
+                    <li class="breadcrumb-item active">New System</li>
+                </ol>
+            </nav>
+
+            <div class="card shadow border-0">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-4">
+                        <i class='fas fa-graduation-cap fs-1 text-primary'></i>
+                        <h2 class="h4 mt-3">New Grade System Setup</h2>
+                        <p class="text-muted small">Define your grading structure name and total scale</p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('add_grade_scheme') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3 text-start">
+                            <label class="form-label fw-bold small">System / Scheme Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class='fas fa-tag'></i></span>
+                                {{ form.name(class="form-control" + (" is-invalid" if form.name.errors else ""), placeholder="e.g., Standard 100-Point Scheme") }}
+                            </div>
+                            {% for error in form.name.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mb-4 text-start">
+                            <label class="form-label fw-bold small">Total Marks (Scale)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class='fas fa-calculator'></i></span>
+                                {{ form.total_marks(class="form-control" + (" is-invalid" if form.total_marks.errors else ""), placeholder="e.g., 100") }}
+                            </div>
+                            <div class="form-text small">The total maximum marks achievable across all components.</div>
+                            {% for error in form.total_marks.errors %}
+                                <div class="text-danger small mt-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class='fas fa-save me-1'></i> Save & Continue
+                            </button>
+                            <a href="{{ url_for('grade_system_list') }}" class="btn btn-link link-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

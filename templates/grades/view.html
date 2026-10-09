@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}View Grades - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-trophy me-2"></i>Grade Management</h2>
+            <p class="text-muted">View and manage student grades</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('export_grades_pdf', year=year, section=section) }}" class="btn btn-danger me-2">
+                <i class="fas fa-file-pdf me-2"></i>Print PDF
+            </a>
+            <a href="{{ url_for('finalize_grades_page') }}" class="btn btn-warning">
+                <i class="fas fa-check-circle me-2"></i>Finalize
+            </a>
+            {% if schemes %}
+            <div class="dropdown d-inline-block ms-2">
+                <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-edit me-1"></i> Dynamic Entry
+                </button>
+                <ul class="dropdown-menu">
+                    {% for s in schemes %}
+                    <li><a class="dropdown-item" href="{{ url_for('dynamic_grade_entry', scheme_id=s.id, year=year, section=section) }}">Scheme #{{ s.id }} ({{ s.total_marks }})</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3" id="filterForm">
+                <div class="col-md-2">
+                    <label for="year" class="form-label">Academic Year</label>
+                    <select name="year" id="year" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Years</option>
+                        <option value="1" {{ 'selected' if year == 1 }}>1st Year</option>
+                        <option value="2" {{ 'selected' if year == 2 }}>2nd Year</option>
+                        <option value="3" {{ 'selected' if year == 3 }}>3rd Year</option>
+                        <option value="4" {{ 'selected' if year == 4 }}>4th Year</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="section" class="form-label">Section</label>
+                    <select name="section" id="section" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Sections</option>
+                        {% for sect in sections %}
+                        <option value="{{ sect }}" {{ 'selected' if section == sect }}>Section {{ sect }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search Student</label>
+                    <div class="input-group">
+                        <input type="text" name="search" id="search" class="form-control" 
+                               placeholder="Enter name or ID..." value="{{ search or '' }}">
+                        <button type="submit" class="btn btn-outline-success">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        {% if search %}
+                        <a href="{{ url_for('grade_list', year=year, section=section) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="w-100">
+                        <small class="text-muted">
+                            Showing {{ students|length }} students
+                        </small>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Grades Table -->
+    {% if students %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0"><i class="fas fa-list me-2"></i>Student Grades</h4>
+            {% if default_scheme %}
+                <span class="badge bg-success">Active System: {{ default_scheme.name }}</span>
+            {% else %}
+                <span class="badge bg-secondary">Using Legacy System</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-sm">
+                    <thead>
+                        {% if default_scheme %}
+                            <!-- Dynamic Header -->
+                            <tr>
+                                <th rowspan="2" class="align-middle">Student</th>
+                                <th rowspan="2" class="align-middle">Year/Sec</th>
+                                {% for comp in default_scheme.components %}
+                                    <th colspan="{{ comp.sub_components|length }}" class="text-center border-bottom text-primary">
+                                        {{ comp.name }}
+                                        {% if comp.is_finalized %}
+                                            <i class="fas fa-lock ms-1 text-danger" title="Finalized - Locked"></i>
+                                        {% endif %}
+                                        <br><small>({{ comp.max_marks }})</small>
+                                    </th>
+                                {% endfor %}
+                                <th rowspan="2" class="align-middle text-center">Total<br><small>({{ default_scheme.total_marks }})</small></th>
+                                <th rowspan="2" class="align-middle text-center">Result</th>
+                                <th rowspan="2" class="align-middle">Actions</th>
+                            </tr>
+                            <tr>
+                                {% for comp in default_scheme.components %}
+                                    {% for sub in comp.sub_components %}
+                                        <th class="text-center small fw-normal border-start">{{ sub.name }}<br><small>({{ sub.max_marks }})</small></th>
+                                    {% endfor %}
+                                {% endfor %}
+                            </tr>
+                        {% else %}
+                            <!-- Legacy Header -->
+                            <tr>
+                                <th>Student</th>
+                                <th>Year/Sec</th>
+                                <th class="text-center">S1<br><small>(20)</small></th>
+                                <th class="text-center">Mid<br><small>(10)</small></th>
+                                <th class="text-center">S2<br><small>(20)</small></th>
+                                <th class="text-center">Final<br><small>(50)</small></th>
+                                <th class="text-center">Total<br><small>(100)</small></th>
+                                <th class="text-center">Result</th>
+                                <th>Actions</th>
+                            </tr>
+                        {% endif %}
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        {% set legacy_grade = student.grades[0] if student.grades else None %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>{{ student.name }}</strong><br>
+                                    <small class="text-muted">{{ student.student_id }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-info-light text-info">{{ student.academic_year }}Y</span>
+                                <span class="badge bg-secondary-light text-secondary">{{ student.section }}</span>
+                            </td>
+                            
+                            {% if default_scheme %}
+                                <!-- Dynamic Data Row -->
+                                {% set student_total = [0.0] %}
+                                {% for comp in default_scheme.components %}
+                                    {% for sub in comp.sub_components %}
+                                        <td class="text-center border-start">
+                                            {% set val = dynamic_grades.get(student.id|string + "_" + sub.id|string, 0) %}
+                                            {{ val }}
+                                            {% if student_total.append(student_total.pop() + val) %}{% endif %}
+                                        </td>
+                                    {% endfor %}
+                                {% endfor %}
+                                <td class="text-center fw-bold">
+                                    <h5 class="mb-0">
+                                        <span class="badge bg-{{ 'success' if student_total[0] >= (default_scheme.total_marks * 0.5) else 'danger' }}">
+                                            {{ student_total[0] }}
+                                        </span>
+                                    </h5>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-{{ 'success' if student_total[0] >= (default_scheme.total_marks * 0.5) else 'danger' }}">
+                                        {{ 'PASS' if student_total[0] >= (default_scheme.total_marks * 0.5) else 'FAIL' }}
+                                    </span>
+                                </td>
+                            {% else %}
+                                <!-- Legacy Data Row -->
+                                <td class="text-center">
+                                    {% if legacy_grade %}
+                                        <div class="small">
+                                            T:{{ legacy_grade.semester1_theory }}/P:{{ legacy_grade.semester1_practical }}/A:{{ legacy_grade.semester1_attendance }}
+                                        </div>
+                                        <strong class="text-primary">{{ legacy_grade.get_semester1_total() }}</strong>
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <strong>{{ legacy_grade.midyear_exam if legacy_grade else '-' }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    {% if legacy_grade %}
+                                        <div class="small text-muted">
+                                            T:{{ legacy_grade.semester2_theory }}/P:{{ legacy_grade.semester2_practical }}/A:{{ legacy_grade.semester2_attendance }}
+                                        </div>
+                                        <strong class="text-info">{{ legacy_grade.get_semester2_total() }}</strong>
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if legacy_grade %}
+                                        <strong class="text-success">{{ legacy_grade.get_final_total() }}</strong>
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <h5 class="mb-0">
+                                        <span class="badge bg-{{ 'success' if legacy_grade and legacy_grade.get_total_grade() >= 50 else 'danger' }}">
+                                            {{ legacy_grade.get_total_grade() if legacy_grade else '-' }}
+                                        </span>
+                                    </h5>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-{{ 'success' if legacy_grade and legacy_grade.is_passed() else 'danger' }}">
+                                        {{ 'PASS' if legacy_grade and legacy_grade.is_passed() else 'FAIL' if legacy_grade else 'No Data' }}
+                                    </span>
+                                </td>
+                            {% endif %}
+                            
+                            <td>
+                                <a href="{{ url_for('edit_grades', student_id=student.id, return_year=year, return_section=section, return_search=search) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="Edit Grades">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Summary -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-trophy fa-2x text-success mb-2"></i>
+                    <h4>
+                        {% set passed_count = 0 %}
+                        {% for student in students if student.grades %}
+                            {% if student.grades[0].is_passed() %}
+                                {% set passed_count = passed_count + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ passed_count }}
+                    </h4>
+                    <p class="mb-0">Passed Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                    <h4>
+                        {% set failed_count = 0 %}
+                        {% for student in students if student.grades %}
+                            {% if not student.grades[0].is_passed() %}
+                                {% set failed_count = failed_count + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ failed_count }}
+                    </h4>
+                    <p class="mb-0">Failed Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-percentage fa-2x text-info mb-2"></i>
+                    <h4>
+                        {% set total_with_grades = 0 %}
+                        {% set passed_students = 0 %}
+                        {% for student in students if student.grades %}
+                            {% set total_with_grades = total_with_grades + 1 %}
+                            {% if student.grades[0].is_passed() %}
+                                {% set passed_students = passed_students + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if total_with_grades > 0 %}
+                            {{ "%.1f"|format((passed_students / total_with_grades) * 100) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </h4>
+                    <p class="mb-0">Pass Rate</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-calculator fa-2x text-warning mb-2"></i>
+                    <h4>
+                        {% set total_grades = [] %}
+                        {% for student in students if student.grades %}
+                            {% set _ = total_grades.append(student.grades[0].get_total_grade()) %}
+                        {% endfor %}
+                        {% if total_grades %}
+                            {{ "%.1f"|format(total_grades|sum / total_grades|length) }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </h4>
+                    <p class="mb-0">Average Grade</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-trophy fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No students found</h4>
+            <p class="text-muted">Please select different filters or add students to the system.</p>
+            <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Add Students
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-submit form when year changes to update section dropdown
+document.getElementById('year').addEventListener('change', function() {
+    // Clear the section selection when year changes
+    document.getElementById('section').value = '';
+    // Form already has onchange="this.form.submit()" so no need to submit here
+});
+</script>
+{% endblock %}

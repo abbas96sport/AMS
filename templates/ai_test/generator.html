@@ -1,0 +1,1065 @@
+{% extends "base.html" %}
+
+{% block title %}AI Sports Test Generator - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center gap-3 mb-1">
+                <h2 class="mb-0"><i class="fas fa-robot me-2 text-success"></i>AI Sports Test Generator</h2>
+                <span class="badge bg-success">Powered by AI</span>
+            </div>
+            <p class="text-muted">Enter your test idea and the AI will generate a complete academic sports test with diagram</p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Input Form -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Test Input</h5>
+                </div>
+                <div class="card-body">
+                    <form id="testForm">
+
+                        <div class="mb-3">
+                            <label for="test_title" class="form-label fw-bold">Test Title / Idea <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="test_title" placeholder="e.g. Illinois Agility Test, speed test with cones..." required>
+                            <div class="form-text">Enter a known test name or describe your idea</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Sport Type</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-success text-white"><i class="fas fa-futbol"></i></span>
+                                <input type="text" class="form-control" value="Football (Soccer)" readonly>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label fw-bold">Description</label>
+                            <textarea class="form-control" id="description" rows="3" placeholder="Brief description of the test or what you want to measure..."></textarea>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-4">
+                                <label for="num_cones" class="form-label fw-bold">Cones</label>
+                                <input type="number" class="form-control" id="num_cones" placeholder="e.g. 4" min="0" max="20">
+                            </div>
+                            <div class="col-4">
+                                <label for="num_players" class="form-label fw-bold">Players</label>
+                                <input type="number" class="form-control" id="num_players" placeholder="e.g. 10" min="1" max="50">
+                            </div>
+                            <div class="col-4">
+                                <label for="distances" class="form-label fw-bold">Distance (m)</label>
+                                <input type="text" class="form-control" id="distances" placeholder="e.g. 10m">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="start_end" class="form-label fw-bold">Start & End Point</label>
+                            <input type="text" class="form-control" id="start_end" placeholder="e.g. Start at cone A, finish at cone A">
+                        </div>
+
+                        <div class="mb-2">
+                            <label for="comp_main" class="form-label fw-bold">Test Components</label>
+                            <select class="form-select mb-2" id="comp_main">
+                                <option value="">-- Select Main Category --</option>
+                                <option value="General Skills">General Skills</option>
+                                <option value="Attacking Skills">Attacking Skills</option>
+                                <option value="Defensive Skills">Defensive Skills</option>
+                            </select>
+                            <select class="form-select" id="comp_sub" disabled>
+                                <option value="">-- Select Subcategory --</option>
+                            </select>
+                            <div id="comp_selected_badge" class="mt-1"></div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label fw-bold">Optional Notes</label>
+                            <textarea class="form-control" id="notes" rows="2" placeholder="Any additional details, age group, level..."></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg" id="generateBtn">
+                                <i class="fas fa-magic me-2"></i>Generate Test
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="clearBtn">
+                                <i class="fas fa-times me-2"></i>Clear
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Section -->
+        <div class="col-lg-8">
+
+            <!-- Loading Spinner -->
+            <div id="loadingSection" class="text-center py-5" style="display:none;">
+                <div class="spinner-border text-success" style="width:3rem;height:3rem;" role="status"></div>
+                <p class="mt-3 text-muted fs-5">AI is generating your test...</p>
+                <p class="text-muted small">This may take 10-20 seconds</p>
+            </div>
+
+            <!-- Welcome placeholder -->
+            <div id="welcomeSection" class="py-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-futbol fa-4x text-success opacity-25 mb-3 d-block"></i>
+                    <h4 class="text-muted">Enter test details on the left and click Generate</h4>
+                </div>
+                <div class="card border-success mb-3">
+                    <div class="card-header bg-success bg-opacity-10 text-success py-2">
+                        <i class="fas fa-lightbulb me-1"></i><strong>Quick Start — click a known test:</strong>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-sm btn-outline-success quick-test-btn" data-test="Illinois Agility Test">Illinois Agility</button>
+                            <button class="btn btn-sm btn-outline-success quick-test-btn" data-test="T-Test Agility">T-Test</button>
+                            <button class="btn btn-sm btn-outline-warning quick-test-btn" data-test="Ronaldo Football Test">Ronaldo Test</button>
+                            <button class="btn btn-sm btn-outline-info quick-test-btn" data-test="Yo-Yo Intermittent Recovery Test">Yo-Yo Test</button>
+                            <button class="btn btn-sm btn-outline-danger quick-test-btn" data-test="505 Agility Test">505 Agility</button>
+                            <button class="btn btn-sm btn-outline-secondary quick-test-btn" data-test="Slalom Dribbling Test Football">Slalom Dribble</button>
+                            <button class="btn btn-sm btn-outline-secondary quick-test-btn" data-test="Football Shooting Accuracy Test">Shooting Accuracy</button>
+                            <button class="btn btn-sm btn-outline-secondary quick-test-btn" data-test="Cooper 12-Minute Run Test">Cooper Test</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card border-secondary">
+                    <div class="card-body p-2 text-muted small">
+                        <i class="fas fa-pencil-alt me-1"></i>Or type your own idea: <em>"Speed test with 4 cones 10 meters dribbling"</em>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Alert -->
+            <div id="errorAlert" class="alert alert-danger alert-permanent" style="display:none;"></div>
+
+            <!-- Generated Test Output -->
+            <div id="outputSection" style="display:none;">
+                <!-- Action Buttons -->
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button class="btn btn-success" id="copyAcademicBtn">
+                        <i class="fas fa-copy me-1"></i>Copy Academic Text
+                    </button>
+                    <button class="btn btn-outline-success" id="exportTxtBtn">
+                        <i class="fas fa-file-alt me-1"></i>Export TXT
+                    </button>
+                    <button class="btn btn-danger" id="exportPdfBtn">
+                        <i class="fas fa-file-pdf me-1"></i>Export PDF
+                    </button>
+                    <button class="btn btn-info" id="drawDiagramBtn">
+                        <i class="fas fa-drafting-compass me-1"></i>Generate Diagram
+                    </button>
+                    <button class="btn btn-warning text-dark" id="translateArabicBtn">
+                        <i class="fas fa-language me-1"></i>Translate to Arabic
+                    </button>
+                    <button class="btn btn-secondary" id="saveTestBtn">
+                        <i class="fas fa-bookmark me-1"></i>Save Test
+                    </button>
+                </div>
+                <!-- Arabic Translation Notice -->
+                <div id="arabicNotice" class="alert alert-warning alert-permanent" style="display:none;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Showing Arabic translation. <a href="#" id="revertEnglishLink">Revert to English</a></span>
+                </div>
+
+                <!-- Test Name Banner -->
+                <div class="card mb-3 border-success">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0" id="outputTestName"></h4>
+                        <span class="badge bg-light text-success">AI Generated</span>
+                    </div>
+                </div>
+
+                <!-- Main Sections via Accordion -->
+                <div class="accordion" id="testAccordion">
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCore">
+                                <i class="fas fa-bullseye me-2 text-success"></i>Core Test Information
+                            </button>
+                        </h2>
+                        <div id="collapseCore" class="accordion-collapse collapse show" data-bs-parent="#testAccordion">
+                            <div class="accordion-body">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <h6 class="text-success"><i class="fas fa-crosshairs me-1"></i>Objective</h6>
+                                        <p id="outObjective" class="mb-3"></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-success"><i class="fas fa-tools me-1"></i>Tools Required</h6>
+                                        <p id="outTools"></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="text-success"><i class="fas fa-ruler me-1"></i>Variables Measured</h6>
+                                        <p id="outVariables"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSetup">
+                                <i class="fas fa-map-marked-alt me-2 text-success"></i>Field Setup & Procedure
+                            </button>
+                        </h2>
+                        <div id="collapseSetup" class="accordion-collapse collapse" data-bs-parent="#testAccordion">
+                            <div class="accordion-body">
+                                <h6 class="text-success"><i class="fas fa-map me-1"></i>Field Setup</h6>
+                                <p id="outFieldSetup" class="mb-3"></p>
+                                <h6 class="text-success"><i class="fas fa-list-ol me-1"></i>Step-by-Step Procedure</h6>
+                                <div id="outProcedure"></div>
+                                <h6 class="text-success mt-3"><i class="fas fa-running me-1"></i>Performance Instructions</h6>
+                                <p id="outPerformance"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseScoring">
+                                <i class="fas fa-trophy me-2 text-success"></i>Scoring & Notes
+                            </button>
+                        </h2>
+                        <div id="collapseScoring" class="accordion-collapse collapse" data-bs-parent="#testAccordion">
+                            <div class="accordion-body">
+                                <h6 class="text-success"><i class="fas fa-calculator me-1"></i>Scoring Method</h6>
+                                <p id="outScoring" class="mb-3"></p>
+                                <h6 class="text-success"><i class="fas fa-exclamation-circle me-1"></i>Important Notes</h6>
+                                <p id="outNotes"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAcademic">
+                                <i class="fas fa-graduation-cap me-2 text-success"></i>Academic Version
+                            </button>
+                        </h2>
+                        <div id="collapseAcademic" class="accordion-collapse collapse" data-bs-parent="#testAccordion">
+                            <div class="accordion-body">
+                                <div class="d-flex justify-content-end mb-2">
+                                    <button class="btn btn-sm btn-outline-success" onclick="copyAcademic()">
+                                        <i class="fas fa-copy me-1"></i>Copy
+                                    </button>
+                                </div>
+                                <div id="outAcademic" class="border-start border-success ps-3"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePractical">
+                                <i class="fas fa-whistle me-2 text-success"></i>Practical Version (For Coaches)
+                            </button>
+                        </h2>
+                        <div id="collapsePractical" class="accordion-collapse collapse" data-bs-parent="#testAccordion">
+                            <div class="accordion-body">
+                                <div id="outPractical"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTable">
+                                <i class="fas fa-table me-2 text-success"></i>Results Table
+                            </button>
+                        </h2>
+                        <div id="collapseTable" class="accordion-collapse collapse" data-bs-parent="#testAccordion">
+                            <div class="accordion-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-hover" id="resultsTable">
+                                        <thead class="table-success">
+                                            <tr>
+                                                <th>No.</th>
+                                                <th>Player Name</th>
+                                                <th>Attempt 1</th>
+                                                <th>Attempt 2</th>
+                                                <th>Attempt 3</th>
+                                                <th>Best Time</th>
+                                                <th>Score</th>
+                                                <th>Performance Level</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="resultsTableBody"></tbody>
+                                    </table>
+                                </div>
+                                <button class="btn btn-sm btn-outline-success mt-2" onclick="addResultRow()">
+                                    <i class="fas fa-plus me-1"></i>Add Row
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Diagram Section -->
+                <div class="card mt-4" id="diagramSection" style="display:none;">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-drafting-compass me-2"></i>Test Layout Diagram</h5>
+                        <button class="btn btn-sm btn-outline-light" id="downloadDiagramBtn">
+                            <i class="fas fa-download me-1"></i>Download PNG
+                        </button>
+                    </div>
+                    <div class="card-body text-center p-2">
+                        <canvas id="diagramCanvas" style="max-width:100%; border:1px solid #444; border-radius:8px;"></canvas>
+                    </div>
+                    <div class="card-footer">
+                        <h6 class="text-muted mb-1"><i class="fas fa-image me-1"></i>AI Image Prompt (for external diagram tools)</h6>
+                        <div class="bg-dark rounded p-2">
+                            <small id="outImagePrompt" class="text-muted font-monospace"></small>
+                        </div>
+                    </div>
+                </div>
+
+            </div><!-- /outputSection -->
+        </div>
+    </div>
+</div>
+<!-- Hidden form for PDF export (form POST — same as all other PDF exports in the system) -->
+<form id="pdfExportForm" method="POST" action="{{ url_for('ai_export_test_pdf') }}" style="display:none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="test_data" id="pdfTestData">
+    <input type="hidden" name="diagram_data_url" id="pdfDiagramData">
+</form>
+
+<!-- Saved Tests Panel -->
+<div class="container-fluid mt-3 px-3 px-md-4">
+    <div class="card border-secondary">
+        <div class="card-header d-flex justify-content-between align-items-center py-2" style="cursor:pointer;" id="savedTestsToggle">
+            <span><i class="fas fa-bookmark me-2 text-success"></i><strong>Saved Tests</strong> <span id="savedTestsCount" class="badge bg-success ms-1">0</span></span>
+            <i class="fas fa-chevron-down" id="savedTestsChevron"></i>
+        </div>
+        <div id="savedTestsPanel" style="display:none;">
+            <div class="card-body p-2">
+                <div id="savedTestsList" class="list-group list-group-flush"></div>
+                <div id="savedTestsEmpty" class="text-center text-muted py-3 small" style="display:none;">
+                    <i class="fas fa-inbox me-1"></i>No saved tests yet. Generate a test and click "Save Test".
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CSRF_TOKEN = "{{ csrf_token() }}";
+let generatedTest = null;
+let diagramDrawn = false;
+
+function setDisplay(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = value;
+}
+
+// ─── Form submit ─────────────────────────────────────
+document.getElementById('testForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    generateTest();
+});
+
+document.getElementById('clearBtn').addEventListener('click', function() {
+    document.getElementById('testForm').reset();
+    setDisplay('outputSection', 'none');
+    setDisplay('welcomeSection', 'block');
+    setDisplay('errorAlert', 'none');
+    setDisplay('diagramSection', 'none');
+    generatedTest = null;
+    diagramDrawn = false;
+    document.getElementById('comp_sub').innerHTML = '<option value="">-- Select Subcategory --</option>';
+    document.getElementById('comp_sub').disabled = true;
+    document.getElementById('comp_selected_badge').innerHTML = '';
+});
+
+// ─── Two-level component dropdowns ────────────────────
+const COMP_DATA = {
+    'General Skills': {
+        type: 'flat',
+        items: ['Speed','Agility','Endurance','Strength','Coordination','Balance','Reaction Time',
+                'Dribbling','Passing','Shooting','Heading','Ball Control','Jumping']
+    },
+    'Attacking Skills': {
+        type: 'grouped',
+        groups: {
+            'Attacking Types': ['Individual Attack','Group Attack','Team Attack'],
+            'Attacking Styles': ['Counterattack','Build-up from the Back','Possession Play',
+                                 'Long Balls','Short Passes','Crosses','Wing Play'],
+            'Attacking Combinations': ['Double Pass','Overlap','Position Rotation']
+        }
+    },
+    'Defensive Skills': {
+        type: 'grouped',
+        groups: {
+            'Defensive Types': ['Individual Defense','Group Defense','Mixed Defense'],
+            'Defensive Styles': ['Low Press','Mid Press','High Press']
+        }
+    }
+};
+
+document.getElementById('comp_main').addEventListener('change', function() {
+    const subSel = document.getElementById('comp_sub');
+    const badge = document.getElementById('comp_selected_badge');
+    const key = this.value;
+    subSel.innerHTML = '<option value="">-- Select Subcategory --</option>';
+    badge.innerHTML = '';
+    if (!key || !COMP_DATA[key]) { subSel.disabled = true; return; }
+    const cat = COMP_DATA[key];
+    if (cat.type === 'flat') {
+        cat.items.forEach(item => {
+            const opt = document.createElement('option');
+            opt.value = item; opt.textContent = item;
+            subSel.appendChild(opt);
+        });
+    } else {
+        Object.entries(cat.groups).forEach(([groupName, items]) => {
+            const grp = document.createElement('optgroup');
+            grp.label = groupName;
+            items.forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item; opt.textContent = item;
+                grp.appendChild(opt);
+            });
+            subSel.appendChild(grp);
+        });
+    }
+    subSel.disabled = false;
+    badge.innerHTML = `<span class="badge bg-success bg-opacity-25 text-success border border-success">${key}</span>`;
+});
+
+document.getElementById('comp_sub').addEventListener('change', function() {
+    const badge = document.getElementById('comp_selected_badge');
+    const main = document.getElementById('comp_main').value;
+    if (this.value) {
+        badge.innerHTML = `<span class="badge bg-success bg-opacity-25 text-success border border-success me-1">${main}</span><i class="fas fa-chevron-right small text-muted me-1"></i><span class="badge bg-info bg-opacity-25 text-info border border-info">${this.value}</span>`;
+    } else {
+        badge.innerHTML = main ? `<span class="badge bg-success bg-opacity-25 text-success border border-success">${main}</span>` : '';
+    }
+});
+
+// ─── Quick test buttons ───────────────────────────────
+document.querySelectorAll('.quick-test-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const testTitle = this.dataset.test;
+        const titleInput = document.getElementById('test_title');
+        if (titleInput) {
+            titleInput.value = testTitle;
+            titleInput.focus();
+            titleInput.scrollIntoView({behavior: 'smooth', block: 'center'});
+            titleInput.classList.add('border-success');
+            setTimeout(() => titleInput.classList.remove('border-success'), 1500);
+        }
+    });
+});
+
+// ─── Save Test ────────────────────────────────────────
+document.getElementById('saveTestBtn').addEventListener('click', async function() {
+    if (!generatedTest) return;
+    const btn = this;
+    btn.disabled = true;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    try {
+        const resp = await fetch('/ai-test-generator/save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRF()},
+            body: JSON.stringify({test: generatedTest})
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('Test saved: ' + data.name);
+            loadSavedTests();
+        } else {
+            showToast('Save failed: ' + (data.error || 'Unknown error'));
+        }
+    } catch(e) {
+        showToast('Save failed: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    }
+});
+
+// ─── Saved Tests Panel ────────────────────────────────
+let savedPanelOpen = false;
+document.getElementById('savedTestsToggle').addEventListener('click', function() {
+    savedPanelOpen = !savedPanelOpen;
+    setDisplay('savedTestsPanel', savedPanelOpen ? 'block' : 'none');
+    document.getElementById('savedTestsChevron').className = savedPanelOpen
+        ? 'fas fa-chevron-up' : 'fas fa-chevron-down';
+    if (savedPanelOpen) loadSavedTests();
+});
+
+async function loadSavedTests() {
+    try {
+        const resp = await fetch('/ai-test-generator/saved');
+        const data = await resp.json();
+        const list = document.getElementById('savedTestsList');
+        const empty = document.getElementById('savedTestsEmpty');
+        const count = document.getElementById('savedTestsCount');
+        list.innerHTML = '';
+        const tests = data.tests || [];
+        count.textContent = tests.length;
+        if (tests.length === 0) {
+            empty.style.display = 'block';
+        } else {
+            empty.style.display = 'none';
+            tests.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3';
+                item.innerHTML = `
+                    <div>
+                        <i class="fas fa-file-alt text-success me-2"></i>
+                        <strong>${t.name}</strong>
+                        <small class="text-muted ms-2">${t.created_at}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-success load-saved-btn" data-id="${t.id}" title="Load">
+                            <i class="fas fa-upload"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-saved-btn" data-id="${t.id}" title="Delete">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>`;
+                list.appendChild(item);
+            });
+            list.querySelectorAll('.load-saved-btn').forEach(btn => {
+                btn.addEventListener('click', () => loadSavedTest(btn.dataset.id));
+            });
+            list.querySelectorAll('.delete-saved-btn').forEach(btn => {
+                btn.addEventListener('click', () => deleteSavedTest(btn.dataset.id));
+            });
+        }
+    } catch(e) { console.error('loadSavedTests error', e); }
+}
+
+async function loadSavedTest(id) {
+    try {
+        const resp = await fetch(`/ai-test-generator/saved/${id}`);
+        const data = await resp.json();
+        if (data.success) {
+            generatedTest = data.test;
+            renderTest(data.test);
+            setDisplay('welcomeSection', 'none');
+            setDisplay('outputSection', 'block');
+            window.scrollTo({top: 0, behavior: 'smooth'});
+            showToast('Loaded: ' + data.name);
+        }
+    } catch(e) { showToast('Load failed: ' + e.message); }
+}
+
+async function deleteSavedTest(id) {
+    if (!confirm('Delete this saved test?')) return;
+    try {
+        const resp = await fetch(`/ai-test-generator/saved/${id}/delete`, {
+            method: 'POST',
+            headers: {'X-CSRFToken': getCSRF()}
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('Deleted.');
+            loadSavedTests();
+        }
+    } catch(e) { showToast('Delete failed: ' + e.message); }
+}
+
+// Auto-load count on page load
+(async function() {
+    try {
+        const resp = await fetch('/ai-test-generator/saved');
+        const data = await resp.json();
+        document.getElementById('savedTestsCount').textContent = (data.tests || []).length;
+    } catch(e) {}
+})();
+
+async function generateTest() {
+    const title = document.getElementById('test_title').value.trim();
+    if (!title) {
+        alert('Please enter a test title or idea.');
+        return;
+    }
+
+    const components = [];
+    const mainCat = document.getElementById('comp_main').value;
+    const subCat = document.getElementById('comp_sub').value;
+    if (subCat) components.push(subCat);
+    else if (mainCat) components.push(mainCat);
+
+    const payload = {
+        test_title: title,
+        description: document.getElementById('description').value,
+        num_cones: document.getElementById('num_cones').value,
+        num_players: document.getElementById('num_players').value,
+        distances: document.getElementById('distances').value,
+        start_end: document.getElementById('start_end').value,
+        components: components,
+        notes: document.getElementById('notes').value
+    };
+
+    setDisplay('welcomeSection', 'none');
+    setDisplay('outputSection', 'none');
+    setDisplay('diagramSection', 'none');
+    setDisplay('errorAlert', 'none');
+    setDisplay('loadingSection', 'block');
+    const gb = document.getElementById('generateBtn');
+    if (gb) gb.disabled = true;
+
+    try {
+        const resp = await fetch('/ai-test-generator/generate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRF()},
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+
+        if (!resp.ok || data.error) {
+            showError(data.error || 'Generation failed. Please try again.');
+            return;
+        }
+
+        generatedTest = data.test;
+        renderTest(data.test);
+
+    } catch (err) {
+        showError('Connection error. Please check your network and try again.');
+    } finally {
+        const ls = document.getElementById('loadingSection');
+        if (ls) ls.style.display = 'none';
+        const gb = document.getElementById('generateBtn');
+        if (gb) gb.disabled = false;
+    }
+}
+
+function getCSRF() {
+    return CSRF_TOKEN;
+}
+
+function showError(msg) {
+    const el = document.getElementById('errorAlert');
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+    const ls = document.getElementById('loadingSection');
+    if (ls) ls.style.display = 'none';
+    const ws = document.getElementById('welcomeSection');
+    if (ws) ws.style.display = 'block';
+}
+
+function renderTest(test) {
+    document.getElementById('outputTestName').textContent = test.test_name || 'Generated Test';
+    document.getElementById('outObjective').textContent = test.objective || '';
+    document.getElementById('outTools').textContent = test.tools || '';
+    document.getElementById('outVariables').textContent = test.variables_measured || '';
+    document.getElementById('outFieldSetup').textContent = test.field_setup || '';
+    document.getElementById('outPerformance').textContent = test.performance_instructions || '';
+    document.getElementById('outScoring').textContent = test.scoring_method || '';
+    document.getElementById('outNotes').textContent = test.notes || '';
+    document.getElementById('outImagePrompt').textContent = test.image_prompt || '';
+
+    renderMultiline('outProcedure', test.procedure || '');
+    renderMultiline('outAcademic', test.academic_description || '');
+    renderMultiline('outPractical', test.practical_description || '');
+
+    buildResultsTable();
+    setDisplay('outputSection', 'block');
+}
+
+function renderMultiline(elemId, text) {
+    const el = document.getElementById(elemId);
+    if (!el) return;
+    el.innerHTML = '';
+    const lines = text.split('\n').filter(l => l.trim());
+    lines.forEach(line => {
+        const p = document.createElement('p');
+        p.className = 'mb-2';
+        p.textContent = line;
+        el.appendChild(p);
+    });
+}
+
+function buildResultsTable() {
+    const tbody = document.getElementById('resultsTableBody');
+    tbody.innerHTML = '';
+    for (let i = 1; i <= 10; i++) {
+        addResultRow(i);
+    }
+}
+
+function addResultRow(num) {
+    const tbody = document.getElementById('resultsTableBody');
+    const rowNum = num || (tbody.rows.length + 1);
+    const tr = document.createElement('tr');
+    const cols = ['', '', '', '', '', '', ''];
+    tr.innerHTML = `<td>${rowNum}</td>` + cols.map(() => `<td contenteditable="true" class="text-center" style="min-width:70px;"></td>`).join('') + `<td><select class="form-select form-select-sm p-0 border-0"><option></option><option>Excellent</option><option>Good</option><option>Average</option><option>Below Average</option><option>Poor</option></select></td>`;
+    tbody.appendChild(tr);
+}
+
+// ─── Diagram Drawing ─────────────────────────────────
+document.getElementById('drawDiagramBtn').addEventListener('click', function() {
+    if (!generatedTest || !generatedTest.diagram_config) {
+        alert('Please generate a test first.');
+        return;
+    }
+    drawDiagram(generatedTest.diagram_config);
+    setDisplay('diagramSection', 'block');
+    const ds = document.getElementById('diagramSection');
+    if (ds) ds.scrollIntoView({behavior: 'smooth'});
+});
+
+function drawDiagram(config) {
+    const canvas = document.getElementById('diagramCanvas');
+    const W = Math.min(config.field_width || 800, 780);
+    const H = config.field_height || 480;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, W, H);
+
+    // Field surface
+    const pad = 40;
+    ctx.fillStyle = '#1d4a2e';
+    ctx.strokeStyle = '#2ecc71';
+    ctx.lineWidth = 2;
+    roundRect(ctx, pad, pad, W - pad*2, H - pad*2, 8);
+    ctx.fill();
+    ctx.stroke();
+
+    // Field markings (faint lines)
+    ctx.strokeStyle = 'rgba(46,204,113,0.15)';
+    ctx.lineWidth = 1;
+    const midX = W / 2;
+    ctx.beginPath(); ctx.moveTo(midX, pad); ctx.lineTo(midX, H - pad); ctx.stroke();
+    ctx.beginPath(); ctx.arc(midX, H/2, 50, 0, Math.PI*2); ctx.stroke();
+
+    // Build cone lookup
+    const coneMap = {};
+    (config.cones || []).forEach(c => { coneMap[c.id] = c; });
+
+    // Draw paths first (behind cones)
+    (config.path || []).forEach(p => {
+        const from = coneMap[p.from];
+        const to = coneMap[p.to];
+        if (!from || !to) return;
+        const fx = scale(from.x, config.field_width, W, pad);
+        const fy = scale(from.y, config.field_height, H, pad);
+        const tx = scale(to.x, config.field_width, W, pad);
+        const ty = scale(to.y, config.field_height, H, pad);
+
+        ctx.beginPath();
+        ctx.strokeStyle = '#3498db';
+        ctx.lineWidth = 2.5;
+        if (p.style === 'dashed') {
+            ctx.setLineDash([10, 6]);
+        } else {
+            ctx.setLineDash([]);
+        }
+        ctx.moveTo(fx, fy);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        drawArrow(ctx, fx, fy, tx, ty, '#3498db');
+
+        if (p.label) {
+            const mx = (fx + tx) / 2;
+            const my = (fy + ty) / 2;
+            ctx.fillStyle = '#3498db';
+            ctx.font = 'bold 11px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(p.label, mx, my - 8);
+        }
+    });
+
+    // Draw cones
+    (config.cones || []).forEach(c => {
+        const cx = scale(c.x, config.field_width, W, pad);
+        const cy = scale(c.y, config.field_height, H, pad);
+        drawCone(ctx, cx, cy, c.color || 'orange', c.id || '', c.label || '');
+    });
+
+    // Extra labels
+    (config.labels || []).forEach(lbl => {
+        const lx = scale(lbl.x, config.field_width, W, pad);
+        const ly = scale(lbl.y, config.field_height, H, pad);
+        ctx.fillStyle = '#ecf0f1';
+        ctx.font = `${lbl.bold ? 'bold ' : ''}${lbl.size || 12}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText(lbl.text, lx, ly);
+    });
+
+    // Title
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(pad, H - 35, W - pad*2, 25);
+    ctx.fillStyle = '#2ecc71';
+    ctx.font = 'bold 13px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(generatedTest.test_name || 'Test Layout', W/2, H - 17);
+
+    // Legend
+    drawLegend(ctx, W - 160, pad + 10);
+
+    diagramDrawn = true;
+}
+
+function scale(val, fieldSize, canvasSize, pad) {
+    const usable = canvasSize - pad * 2;
+    return pad + (val / fieldSize) * usable;
+}
+
+function drawCone(ctx, x, y, color, id, label) {
+    const colorMap = {
+        'green': '#27ae60', 'red': '#e74c3c', 'orange': '#f39c12',
+        'blue': '#3498db', 'yellow': '#f1c40f', 'white': '#ecf0f1'
+    };
+    const c = colorMap[color] || color || '#f39c12';
+
+    // Cone body (triangle)
+    ctx.beginPath();
+    ctx.moveTo(x, y - 18);
+    ctx.lineTo(x - 10, y + 8);
+    ctx.lineTo(x + 10, y + 8);
+    ctx.closePath();
+    ctx.fillStyle = c;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Cone base
+    ctx.beginPath();
+    ctx.ellipse(x, y + 8, 11, 4, 0, 0, Math.PI*2);
+    ctx.fillStyle = c;
+    ctx.fill();
+
+    // ID label
+    if (id) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 13px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(id, x, y - 24);
+    }
+
+    // Distance label below
+    if (label && label !== id) {
+        ctx.fillStyle = '#ecf0f1';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, x, y + 22);
+    }
+}
+
+function drawArrow(ctx, fx, fy, tx, ty, color) {
+    const angle = Math.atan2(ty - fy, tx - fx);
+    const len = 10;
+    const spread = 0.4;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    const tip = {x: tx - (tx-fx)/(Math.hypot(tx-fx,ty-fy))*18, y: ty - (ty-fy)/(Math.hypot(tx-fx,ty-fy))*18};
+    ctx.moveTo(tip.x + len * Math.cos(angle + Math.PI - spread), tip.y + len * Math.sin(angle + Math.PI - spread));
+    ctx.lineTo(tip.x, tip.y);
+    ctx.lineTo(tip.x + len * Math.cos(angle + Math.PI + spread), tip.y + len * Math.sin(angle + Math.PI + spread));
+    ctx.stroke();
+}
+
+function drawLegend(ctx, x, y) {
+    const items = [
+        {color: '#27ae60', label: 'Start'},
+        {color: '#e74c3c', label: 'Finish'},
+        {color: '#f39c12', label: 'Cone'},
+        {color: '#3498db', label: 'Path'}
+    ];
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(x - 5, y - 5, 130, items.length * 22 + 10);
+    items.forEach((item, i) => {
+        ctx.fillStyle = item.color;
+        ctx.fillRect(x, y + i * 22, 14, 14);
+        ctx.fillStyle = '#ecf0f1';
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(item.label, x + 20, y + i * 22 + 11);
+    });
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+}
+
+// ─── Export buttons ───────────────────────────────────
+document.getElementById('copyAcademicBtn').addEventListener('click', copyAcademic);
+
+function copyAcademic() {
+    if (!generatedTest) return;
+    const text = generatedTest.academic_description || '';
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Academic text copied to clipboard!');
+    }).catch(() => {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        showToast('Copied!');
+    });
+}
+
+document.getElementById('exportTxtBtn').addEventListener('click', function() {
+    if (!generatedTest) return;
+    const t = generatedTest;
+    const sections = [
+        ['TEST NAME', t.test_name],
+        ['OBJECTIVE', t.objective],
+        ['TOOLS REQUIRED', t.tools],
+        ['FIELD SETUP', t.field_setup],
+        ['PROCEDURE', t.procedure],
+        ['PERFORMANCE INSTRUCTIONS', t.performance_instructions],
+        ['SCORING METHOD', t.scoring_method],
+        ['VARIABLES MEASURED', t.variables_measured],
+        ['IMPORTANT NOTES', t.notes],
+        ['ACADEMIC DESCRIPTION', t.academic_description],
+        ['PRACTICAL DESCRIPTION', t.practical_description],
+        ['AI IMAGE PROMPT', t.image_prompt]
+    ];
+    let text = `SPORTS TEST DOCUMENT\nGenerated by AI Sports Test Generator\n${'='.repeat(60)}\n\n`;
+    sections.forEach(([label, val]) => {
+        if (val) text += `${label}\n${'-'.repeat(40)}\n${val}\n\n`;
+    });
+    text += `\nRESULTS TABLE\n${'-'.repeat(40)}\n`;
+    text += 'No. | Player Name | Attempt 1 | Attempt 2 | Attempt 3 | Best Time | Score | Level\n';
+    for (let i = 1; i <= 10; i++) text += `${i}   |             |           |           |           |           |       |\n`;
+    const blob = new Blob([text], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(t.test_name || 'sports_test').replace(/\s+/g,'_')}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+document.getElementById('exportPdfBtn').addEventListener('click', function() {
+    if (!generatedTest) { alert('Please generate a test first.'); return; }
+    // Auto-draw diagram before export if it hasn't been drawn yet
+    if (!diagramDrawn && generatedTest && generatedTest.diagram_config) {
+        drawDiagram(generatedTest.diagram_config);
+        setDisplay('diagramSection', 'block');
+    }
+    let diagramDataUrl = '';
+    if (diagramDrawn) {
+        const canvas = document.getElementById('diagramCanvas');
+        if (canvas) {
+            try { diagramDataUrl = canvas.toDataURL('image/jpeg', 0.92); } catch(e) {}
+        }
+    }
+    document.getElementById('pdfTestData').value = JSON.stringify(generatedTest);
+    document.getElementById('pdfDiagramData').value = diagramDataUrl;
+    document.getElementById('pdfExportForm').submit();
+});
+
+// ─── Translate to Arabic ──────────────────────────────
+let originalTest = null;
+
+document.getElementById('translateArabicBtn').addEventListener('click', async function() {
+    if (!generatedTest) return;
+    const btn = this;
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Translating...';
+
+    try {
+        const resp = await fetch('/ai-test-generator/translate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCSRF()},
+            body: JSON.stringify({test: generatedTest})
+        });
+        const data = await resp.json();
+        if (!resp.ok || data.error) {
+            showToast('Translation failed: ' + (data.error || 'Unknown error'));
+            return;
+        }
+        originalTest = Object.assign({}, generatedTest);
+        generatedTest = data.test;
+        renderTest(data.test);
+        applyRTL(true);
+        const notice = document.getElementById('arabicNotice');
+        if (notice) notice.style.display = 'flex';
+        showToast('Translated to Arabic successfully!');
+    } catch(err) {
+        showToast('Translation error: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    }
+});
+
+document.getElementById('revertEnglishLink').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (!originalTest) return;
+    generatedTest = originalTest;
+    originalTest = null;
+    renderTest(generatedTest);
+    applyRTL(false);
+    const notice = document.getElementById('arabicNotice');
+    if (notice) notice.style.display = 'none';
+    showToast('Reverted to English.');
+});
+
+function applyRTL(enable) {
+    const sections = ['outObjective','outTools','outVariables','outFieldSetup',
+                      'outPerformance','outScoring','outNotes','outProcedure',
+                      'outAcademic','outPractical','outputTestName'];
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.dir = enable ? 'rtl' : 'ltr';
+            el.style.textAlign = enable ? 'right' : 'left';
+            el.style.fontFamily = enable ? 'Arial, Tahoma, sans-serif' : '';
+        }
+    });
+}
+
+document.getElementById('downloadDiagramBtn').addEventListener('click', function() {
+    const canvas = document.getElementById('diagramCanvas');
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `${(generatedTest ? generatedTest.test_name : 'diagram').replace(/\s+/g,'_')}_diagram.png`;
+    a.click();
+});
+
+function showToast(msg) {
+    let toast = document.getElementById('aiToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'aiToast';
+        toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#28a745;color:#fff;padding:10px 20px;border-radius:8px;z-index:9999;font-weight:bold;transition:opacity 0.5s;';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}
+</script>
+{% endblock %}

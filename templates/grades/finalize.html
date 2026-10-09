@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Finalize Grades - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-check-circle me-2"></i>Finalize Grades</h2>
+            <p class="text-muted">Finalize attendance marks for semester grading</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('grade_list') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Grades
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label for="year" class="form-label">Academic Year</label>
+                    <select name="year" id="year" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Years</option>
+                        <option value="1" {{ 'selected' if year == 1 }}>1st Year</option>
+                        <option value="2" {{ 'selected' if year == 2 }}>2nd Year</option>
+                        <option value="3" {{ 'selected' if year == 3 }}>3rd Year</option>
+                        <option value="4" {{ 'selected' if year == 4 }}>4th Year</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="section" class="form-label">Section</label>
+                    <select name="section" id="section" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Sections</option>
+                        {% for sect in sections %}
+                        <option value="{{ sect }}" {{ 'selected' if section == sect }}>Section {{ sect }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <div class="w-100">
+                        <small class="text-muted">
+                            Showing {{ student_data|length }} students
+                        </small>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Finalization Actions -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>First Semester</h5>
+                </div>
+                <div class="card-body">
+                    <p>Finalize attendance marks for the first semester (5 marks)</p>
+                    <p class="text-muted small">This will calculate and assign attendance marks based on each student's attendance percentage.</p>
+                    <a href="{{ url_for('finalize_grades', semester=1, year=year or '', section=section or '') }}" 
+                       class="btn btn-primary w-100" onclick="return confirm('Are you sure you want to finalize first semester attendance marks? This action will update grades for all selected students.')">
+                        <i class="fas fa-check me-2"></i>Finalize First Semester
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Second Semester</h5>
+                </div>
+                <div class="card-body">
+                    <p>Finalize attendance marks for the second semester (5 marks)</p>
+                    <p class="text-muted small">This will calculate and assign attendance marks based on each student's attendance percentage.</p>
+                    <a href="{{ url_for('finalize_grades', semester=2, year=year or '', section=section or '') }}" 
+                       class="btn btn-info w-100" onclick="return confirm('Are you sure you want to finalize second semester attendance marks? This action will update grades for all selected students.')">
+                        <i class="fas fa-check me-2"></i>Finalize Second Semester
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Grading Scale -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4><i class="fas fa-info-circle me-2"></i>Attendance Grading Scale</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <div class="text-center border rounded p-3 bg-success text-white">
+                        <h5>5 marks</h5>
+                        <p class="mb-0">≥90% attendance</p>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center border rounded p-3 bg-primary text-white">
+                        <h5>4 marks</h5>
+                        <p class="mb-0">80-89% attendance</p>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center border rounded p-3 bg-info text-white">
+                        <h5>3 marks</h5>
+                        <p class="mb-0">70-79% attendance</p>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center border rounded p-3 bg-warning text-dark">
+                        <h5>2 marks</h5>
+                        <p class="mb-0">60-69% attendance</p>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center border rounded p-3 bg-warning text-dark">
+                        <h5>1 mark</h5>
+                        <p class="mb-0">50-59% attendance</p>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="text-center border rounded p-3 bg-danger text-white">
+                        <h5>0 marks</h5>
+                        <p class="mb-0"><50% attendance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students Preview -->
+    {% if student_data %}
+    <div class="card">
+        <div class="card-header">
+            <h4><i class="fas fa-users me-2"></i>Students Preview</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Year</th>
+                            <th>Section</th>
+                            <th>Attendance %</th>
+                            <th>Attendance Marks</th>
+                            <th>Semester 1 Status</th>
+                            <th>Semester 2 Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for data in student_data %}
+                        <tr>
+                            <td><strong>{{ data.student.student_id }}</strong></td>
+                            <td>{{ data.student.name }}</td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ data.student.academic_year }}{{ "st" if data.student.academic_year == 1 else ("nd" if data.student.academic_year == 2 else ("rd" if data.student.academic_year == 3 else "th")) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ data.student.section }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if data.attendance_percentage >= 80 else ('warning' if data.attendance_percentage >= 60 else 'danger') }}">
+                                    {{ "%.1f"|format(data.attendance_percentage) }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">
+                                    {{ data.attendance_marks }}/5
+                                </span>
+                            </td>
+                            <td>
+                                {% if data.grade and data.grade.semester1_finalized %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Finalized ({{ data.grade.semester1_attendance }})
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock me-1"></i>Pending
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if data.grade and data.grade.semester2_finalized %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>Finalized ({{ data.grade.semester2_attendance }})
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-clock me-1"></i>Pending
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h4>{{ student_data|selectattr('grade')|selectattr('grade.semester1_finalized')|list|length }}</h4>
+                    <p class="mb-0">Semester 1 Finalized</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x text-info mb-2"></i>
+                    <h4>{{ student_data|selectattr('grade')|selectattr('grade.semester2_finalized')|list|length }}</h4>
+                    <p class="mb-0">Semester 2 Finalized</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                    <h4>{{ student_data|rejectattr('grade')|list|length + student_data|selectattr('grade')|rejectattr('grade.semester1_finalized')|list|length }}</h4>
+                    <p class="mb-0">Semester 1 Pending</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-secondary">
+                <div class="card-body text-center">
+                    <i class="fas fa-clock fa-2x text-secondary mb-2"></i>
+                    <h4>{{ student_data|rejectattr('grade')|list|length + student_data|selectattr('grade')|rejectattr('grade.semester2_finalized')|list|length }}</h4>
+                    <p class="mb-0">Semester 2 Pending</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-users fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No students found</h4>
+            <p class="text-muted">Please select different filters or add students to the system.</p>
+            <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Add Students
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-submit form when year changes to update section dropdown
+document.getElementById('year').addEventListener('change', function() {
+    // Clear the section selection when year changes
+    document.getElementById('section').value = '';
+    // Form already has onchange="this.form.submit()" so no need to submit here
+});
+</script>
+{% endblock %}

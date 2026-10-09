@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Students - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2><i class="fas fa-users me-2"></i>Student Management</h2>
+            <p class="text-muted">Manage students across all academic years and sections</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('import_students') }}" class="btn btn-success me-2">
+                <i class="fas fa-file-excel me-2"></i>Import from Excel
+            </a>
+            <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Add New Student
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label for="year" class="form-label">Academic Year</label>
+                    <select name="year" id="year" class="form-select">
+                        <option value="">All Years</option>
+                        <option value="1" {{ 'selected' if year == 1 }}>1st Year</option>
+                        <option value="2" {{ 'selected' if year == 2 }}>2nd Year</option>
+                        <option value="3" {{ 'selected' if year == 3 }}>3rd Year</option>
+                        <option value="4" {{ 'selected' if year == 4 }}>4th Year</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="section" class="form-label">Section</label>
+                    <select name="section" id="section" class="form-select">
+                        <option value="">All Sections</option>
+                        {% for sect in sections_with_students %}
+                        <option value="{{ sect }}" {{ 'selected' if section == sect }}>Section {{ sect }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" name="search" id="search" class="form-control" 
+                           placeholder="Student name or ID" value="{{ search }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Students Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="fas fa-list me-2"></i>Students List 
+                <span class="badge bg-primary ms-2">{{ students|length }} students</span>
+                <span class="badge bg-info ms-2" id="selectedCount" style="display: none;">0 selected</span>
+            </h4>
+            <button type="button" class="btn btn-danger" id="deleteSelectedBtn" style="display: none;" onclick="confirmBulkDelete()">
+                <i class="fas fa-trash me-2"></i>Delete Selected
+            </button>
+        </div>
+        <div class="card-body">
+            {% if students %}
+                <form id="bulkDeleteForm" method="POST" action="{{ url_for('bulk_delete_students') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" class="form-check-input" onchange="toggleAllCheckboxes(this)">
+                                    </th>
+                                    <th>Photo</th>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Year</th>
+                                    <th>Section</th>
+                                    <th>Attendance</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>
+                                        <input type="checkbox" name="student_ids" value="{{ student.id }}" class="form-check-input student-checkbox" onchange="updateSelectedCount()">
+                                    </td>
+                                    <td>
+                                    {% if student.photo_filename %}
+                                        <img src="{{ url_for('uploaded_photo', filename=student.photo_filename) }}" 
+                                             alt="{{ student.name }}" 
+                                             class="img-thumbnail rounded-circle" 
+                                             style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center" 
+                                             style="width: 50px; height: 50px;">
+                                            <i class="fas fa-user text-white"></i>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ student.student_id }}</strong></td>
+                                <td>{{ student.name }}</td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ student.academic_year }}{{ "st" if student.academic_year == 1 else ("nd" if student.academic_year == 2 else ("rd" if student.academic_year == 3 else "th")) }} Year
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">Section {{ student.section }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if student.get_attendance_percentage() >= 80 else ('warning' if student.get_attendance_percentage() >= 60 else 'danger') }}">
+                                        {{ "%.1f"|format(student.get_attendance_percentage()) }}%
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('edit_student', student_id=student.id) }}" 
+                                           class="btn btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('edit_grades', student_id=student.id) }}" 
+                                           class="btn btn-outline-success" title="Grades">
+                                            <i class="fas fa-trophy"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-outline-danger" title="Delete"
+                                                onclick="deleteSingleStudent({{ student.id }}, '{{ student.name }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                </form>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">No students found</h4>
+                    <p class="text-muted">Try adjusting your filters or add a new student.</p>
+                    <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-2"></i>Add First Student
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div class="modal fade" id="bulkDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Bulk Delete
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong id="deleteCountText">0</strong> selected student(s)?</p>
+                <p class="text-danger"><i class="fas fa-warning me-1"></i>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" onclick="submitBulkDelete()">
+                    <i class="fas fa-trash me-1"></i>Delete Students
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Single Student Delete Confirmation Modal -->
+<div class="modal fade" id="singleDeleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete student <strong id="singleDeleteStudentName"></strong>?</p>
+                <p class="text-danger"><i class="fas fa-warning me-1"></i>This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="singleDeleteForm" method="POST" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Delete Student
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-submit form when year changes to update section dropdown
+document.getElementById('year').addEventListener('change', function() {
+    // Clear the section selection when year changes
+    document.getElementById('section').value = '';
+    // Submit the form to reload with filtered sections
+    this.form.submit();
+});
+
+function toggleAllCheckboxes(source) {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.student-checkbox:checked');
+    const count = checkboxes.length;
+    const selectedCountBadge = document.getElementById('selectedCount');
+    const deleteBtn = document.getElementById('deleteSelectedBtn');
+    
+    if (count > 0) {
+        selectedCountBadge.textContent = count + ' selected';
+        selectedCountBadge.style.display = 'inline-block';
+        deleteBtn.style.display = 'inline-block';
+    } else {
+        selectedCountBadge.style.display = 'none';
+        deleteBtn.style.display = 'none';
+    }
+    
+    // Update select all checkbox state
+    const allCheckboxes = document.querySelectorAll('.student-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    selectAllCheckbox.checked = (count === allCheckboxes.length && count > 0);
+}
+
+function confirmBulkDelete() {
+    const count = document.querySelectorAll('.student-checkbox:checked').length;
+    document.getElementById('deleteCountText').textContent = count;
+    new bootstrap.Modal(document.getElementById('bulkDeleteModal')).show();
+}
+
+function submitBulkDelete() {
+    document.getElementById('bulkDeleteForm').submit();
+}
+
+function deleteSingleStudent(studentId, studentName) {
+    document.getElementById('singleDeleteStudentName').textContent = studentName;
+    document.getElementById('singleDeleteForm').action = `/students/${studentId}/delete`;
+    new bootstrap.Modal(document.getElementById('singleDeleteModal')).show();
+}
+</script>
+{% endblock %}

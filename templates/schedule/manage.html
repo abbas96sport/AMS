@@ -1,0 +1,439 @@
+{% extends "base.html" %}
+
+{% block title %}Class Schedule - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2><i class="fas fa-calendar-alt me-2"></i>Class Schedule</h2>
+            <p class="text-muted">Weekly timetable for training and theory classes</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('export_schedule_pdf') }}{% if year %}?year={{ year }}{% endif %}{% if section %}&section={{ section }}{% endif %}{% if day %}&day={{ day }}{% endif %}" class="btn btn-danger me-2">
+                <i class="fas fa-file-pdf me-2"></i>Export PDF
+            </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+                <i class="fas fa-plus me-2"></i>Add Class
+            </button>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Academic Year</label>
+                    <select name="year" id="year" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Years</option>
+                        <option value="1" {{ 'selected' if year == 1 }}>1st Year</option>
+                        <option value="2" {{ 'selected' if year == 2 }}>2nd Year</option>
+                        <option value="3" {{ 'selected' if year == 3 }}>3rd Year</option>
+                        <option value="4" {{ 'selected' if year == 4 }}>4th Year</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="section" class="form-label">Section</label>
+                    <select name="section" id="section" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Sections</option>
+                        {% for sect in sections_with_students %}
+                        <option value="{{ sect }}" {{ 'selected' if section == sect }}>Section {{ sect }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="day" class="form-label">Day of Week</label>
+                    <select name="day" id="day" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Days</option>
+                        <option value="Monday" {{ 'selected' if day == 'Monday' }}>Monday</option>
+                        <option value="Tuesday" {{ 'selected' if day == 'Tuesday' }}>Tuesday</option>
+                        <option value="Wednesday" {{ 'selected' if day == 'Wednesday' }}>Wednesday</option>
+                        <option value="Thursday" {{ 'selected' if day == 'Thursday' }}>Thursday</option>
+                        <option value="Friday" {{ 'selected' if day == 'Friday' }}>Friday</option>
+                        <option value="Saturday" {{ 'selected' if day == 'Saturday' }}>Saturday</option>
+                        <option value="Sunday" {{ 'selected' if day == 'Sunday' }}>Sunday</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="w-100">
+                        <small class="text-muted">
+                            Showing {{ schedules|length }} scheduled classes
+                        </small>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Weekly Calendar View -->
+    {% if schedules %}
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Weekly Schedule</h4>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 100px;">Time</th>
+                            <th>Monday</th>
+                            <th>Tuesday</th>
+                            <th>Wednesday</th>
+                            <th>Thursday</th>
+                            <th>Friday</th>
+                            <th>Saturday</th>
+                            <th>Sunday</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                        {% set time_slots = {} %}
+                        {% for schedule in schedules %}
+                            {% set time_key = schedule.start_time.strftime('%H:%M') %}
+                            {% if time_key not in time_slots %}
+                                {% set _ = time_slots.update({time_key: {}}) %}
+                            {% endif %}
+                            {% set _ = time_slots[time_key].update({schedule.day_of_week: schedule}) %}
+                        {% endfor %}
+                        
+                        {% for time_slot in time_slots.keys()|sort %}
+                        <tr>
+                            <td class="fw-bold text-center align-middle">{{ time_slot }}</td>
+                            {% for day in days %}
+                            <td class="p-2">
+                                {% if day in time_slots[time_slot] %}
+                                    {% set schedule = time_slots[time_slot][day] %}
+                                    <div class="card border-{{ 'success' if schedule.class_type == 'Practical' else 'info' }} mb-0">
+                                        <div class="card-body p-2">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <span class="badge bg-{{ 'success' if schedule.class_type == 'Practical' else 'info' }} mb-1">
+                                                        {{ schedule.class_type }}
+                                                    </span>
+                                                    <div class="small">
+                                                        <strong>Year {{ schedule.academic_year }}{{ schedule.section }}</strong>
+                                                    </div>
+                                                    <div class="small text-muted">
+                                                        <i class="fas fa-clock me-1"></i>{{ schedule.start_time.strftime('%H:%M') }} - {{ schedule.end_time.strftime('%H:%M') }}
+                                                    </div>
+                                                    {% if schedule.venue %}
+                                                    <div class="small text-muted">
+                                                        <i class="fas fa-map-marker-alt me-1"></i>{{ schedule.venue }}
+                                                    </div>
+                                                    {% endif %}
+                                                    {% if schedule.instructor %}
+                                                    <div class="small text-muted">
+                                                        <i class="fas fa-user me-1"></i>{{ schedule.instructor }}
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="btn-group-vertical btn-group-sm">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                            onclick="editSchedule({{ schedule.id }}, '{{ schedule.day_of_week }}', '{{ schedule.start_time.strftime('%H:%M') }}', '{{ schedule.end_time.strftime('%H:%M') }}', {{ schedule.academic_year }}, '{{ schedule.section }}', '{{ schedule.venue or '' }}', '{{ schedule.class_type }}', '{{ schedule.instructor or '' }}', '{{ schedule.notes or '' }}')">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <form method="POST" action="{{ url_for('delete_schedule', schedule_id=schedule.id) }}" 
+                                                          class="d-inline" onsubmit="return confirm('Delete this class?')">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0"><i class="fas fa-list me-2"></i>All Scheduled Classes</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Time</th>
+                            <th>Year/Section</th>
+                            <th>Type</th>
+                            <th>Instructor</th>
+                            <th>Venue</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for schedule in schedules %}
+                        <tr>
+                            <td><strong>{{ schedule.day_of_week }}</strong></td>
+                            <td>
+                                <i class="fas fa-clock text-muted me-1"></i>
+                                {{ schedule.start_time.strftime('%H:%M') }} - {{ schedule.end_time.strftime('%H:%M') }}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">Year {{ schedule.academic_year }}{{ schedule.section }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if schedule.class_type == 'Practical' else 'info' }}">
+                                    {{ schedule.class_type }}
+                                </span>
+                            </td>
+                            <td>{{ schedule.instructor or '-' }}</td>
+                            <td>{{ schedule.venue or '-' }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary" 
+                                            onclick="editSchedule({{ schedule.id }}, '{{ schedule.day_of_week }}', '{{ schedule.start_time.strftime('%H:%M') }}', '{{ schedule.end_time.strftime('%H:%M') }}', {{ schedule.academic_year }}, '{{ schedule.section }}', '{{ schedule.venue or '' }}', '{{ schedule.class_type }}', '{{ schedule.instructor or '' }}', '{{ schedule.notes or '' }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('delete_schedule', schedule_id=schedule.id) }}" 
+                                          class="d-inline" onsubmit="return confirm('Delete this class?')">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="btn btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-calendar-alt fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No scheduled classes</h4>
+            <p class="text-muted">Start building your weekly schedule by adding the first class.</p>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addScheduleModal">
+                <i class="fas fa-plus me-2"></i>Add First Class
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Add Schedule Modal -->
+<div class="modal fade" id="addScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus me-2"></i>Add Class to Schedule
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_schedule') }}">
+                <div class="modal-body">
+                    {% if form %}
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="academic_year" class="form-label">Academic Year *</label>
+                            {{ form.academic_year(class="form-select") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="section" class="form-label">Section *</label>
+                            {{ form.section(class="form-select") }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="day_of_week" class="form-label">Day of Week *</label>
+                            {{ form.day_of_week(class="form-select") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="class_type" class="form-label">Class Type *</label>
+                            {{ form.class_type(class="form-select") }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="start_time" class="form-label">Start Time *</label>
+                            {{ form.start_time(class="form-control", type="time") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="end_time" class="form-label">End Time *</label>
+                            {{ form.end_time(class="form-control", type="time") }}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="instructor" class="form-label">Instructor</label>
+                            {{ form.instructor(class="form-control", placeholder="e.g., Coach Ahmed") }}
+                        </div>
+                        <div class="col-md-6">
+                            <label for="venue" class="form-label">Venue</label>
+                            {{ form.venue(class="form-control", placeholder="e.g., Training Ground A, Lecture Hall B") }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        {{ form.notes(class="form-control", rows="2", placeholder="Additional notes or instructions...") }}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Form not available. Please refresh the page and try again.
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Add to Schedule
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Schedule Modal -->
+<div class="modal fade" id="editScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i>Edit Scheduled Class
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editScheduleForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_academic_year" class="form-label">Academic Year *</label>
+                            <select name="academic_year" id="edit_academic_year" class="form-select" required>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_section" class="form-label">Section *</label>
+                            <select name="section" id="edit_section" class="form-select" required>
+                                {% for sect in sections_with_students %}
+                                <option value="{{ sect }}">Section {{ sect }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_day_of_week" class="form-label">Day of Week *</label>
+                            <select name="day_of_week" id="edit_day_of_week" class="form-select" required>
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_class_type" class="form-label">Class Type *</label>
+                            <select name="class_type" id="edit_class_type" class="form-select" required>
+                                <option value="Theory">Theory</option>
+                                <option value="Practical">Practical</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_start_time" class="form-label">Start Time *</label>
+                            <input type="time" name="start_time" id="edit_start_time" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_end_time" class="form-label">End Time *</label>
+                            <input type="time" name="end_time" id="edit_end_time" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="edit_instructor" class="form-label">Instructor</label>
+                            <input type="text" name="instructor" id="edit_instructor" class="form-control" 
+                                   placeholder="e.g., Coach Ahmed">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="edit_venue" class="form-label">Venue</label>
+                            <input type="text" name="venue" id="edit_venue" class="form-control" 
+                                   placeholder="e.g., Training Ground A, Lecture Hall B">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_notes" class="form-label">Notes</label>
+                        <textarea name="notes" id="edit_notes" class="form-control" rows="2" 
+                                  placeholder="Additional notes or instructions..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Update Schedule
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-submit form when year changes to update section dropdown
+document.getElementById('year').addEventListener('change', function() {
+    // Clear the section selection when year changes
+    document.getElementById('section').value = '';
+    // Form already has onchange="this.form.submit()" so no need to submit here
+});
+
+function editSchedule(id, day, startTime, endTime, year, section, venue, classType, instructor, notes) {
+    document.getElementById('editScheduleForm').action = `/schedule/${id}/edit`;
+    document.getElementById('edit_day_of_week').value = day;
+    document.getElementById('edit_start_time').value = startTime;
+    document.getElementById('edit_end_time').value = endTime;
+    document.getElementById('edit_academic_year').value = year;
+    document.getElementById('edit_section').value = section;
+    document.getElementById('edit_venue').value = venue;
+    document.getElementById('edit_class_type').value = classType;
+    document.getElementById('edit_instructor').value = instructor;
+    document.getElementById('edit_notes').value = notes;
+    
+    new bootstrap.Modal(document.getElementById('editScheduleModal')).show();
+}
+</script>
+{% endblock %}

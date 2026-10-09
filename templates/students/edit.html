@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Student - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-user-edit me-2"></i>Edit Student</h2>
+            <p class="text-muted">Update student information for {{ student.name }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('student_list') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Students
+            </a>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-futbol me-2"></i>Student Information</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Student ID</label>
+                                <div class="form-control bg-light text-muted">
+                                    {{ student.student_id }}
+                                </div>
+                                <small class="text-muted">Student ID cannot be changed</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="name" class="form-label">Full Name *</label>
+                                {{ form.name(class="form-control") }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.name.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="academic_year" class="form-label">Academic Year *</label>
+                                {{ form.academic_year(class="form-select") }}
+                                {% if form.academic_year.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.academic_year.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="section" class="form-label">Section *</label>
+                                {{ form.section(class="form-select") }}
+                                {% if form.section.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.section.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email Address</label>
+                                {{ form.email(class="form-control") }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.email.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                {{ form.phone(class="form-control") }}
+                                {% if form.phone.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.phone.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label for="photo" class="form-label">Student Photo</label>
+                                {% if student.photo_filename %}
+                                    <div class="mb-2">
+                                        <img src="{{ url_for('uploaded_photo', filename=student.photo_filename) }}" 
+                                             alt="Current photo" 
+                                             class="img-thumbnail" 
+                                             style="max-width: 150px; max-height: 150px;">
+                                        <br><small class="text-muted">Current photo</small>
+                                    </div>
+                                {% endif %}
+                                {{ form.photo(class="form-control") }}
+                                {% if form.photo.errors %}
+                                    <div class="text-danger mt-1">
+                                        {% for error in form.photo.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <small class="text-muted">Leave empty to keep current photo. Supported formats: JPG, JPEG, PNG, GIF</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> Changing academic year or section may affect existing grades and attendance records.
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{{ url_for('student_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Update Student
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

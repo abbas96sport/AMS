@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-calendar-check me-2"></i>Mark Attendance</h2>
+            <p class="text-muted">Quick attendance marking for classes</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('attendance_history') }}" class="btn btn-info">
+                <i class="fas fa-history me-2"></i>Attendance History
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters and Date Selection -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-2">
+                    <label for="date" class="form-label">Class Date</label>
+                    <input type="date" name="date" id="date" class="form-control" 
+                           value="{{ selected_date.strftime('%Y-%m-%d') }}" onchange="this.form.submit()">
+                </div>
+                <div class="col-md-2">
+                    <label for="year" class="form-label">Year</label>
+                    <select name="year" id="year" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Years</option>
+                        <option value="1" {{ 'selected' if year == 1 }}>1st Year</option>
+                        <option value="2" {{ 'selected' if year == 2 }}>2nd Year</option>
+                        <option value="3" {{ 'selected' if year == 3 }}>3rd Year</option>
+                        <option value="4" {{ 'selected' if year == 4 }}>4th Year</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="section" class="form-label">Section</label>
+                    <select name="section" id="section" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Sections</option>
+                        {% for sect in sections %}
+                        <option value="{{ sect }}" {{ 'selected' if section == sect }}>Section {{ sect }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" name="search" id="search" class="form-control" 
+                           placeholder="Name or ID" value="{{ search }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-search me-1"></i>Filter
+                    </button>
+                </div>
+            </form>
+            <div class="mt-3">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success btn-sm" onclick="markAllPresent()">
+                        <i class="fas fa-check-double me-1"></i>All Present
+                    </button>
+                    <button type="button" class="btn btn-warning btn-sm" onclick="markAllAbsent()">
+                        <i class="fas fa-times me-1"></i>All Absent
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Form -->
+    {% if students %}
+    <div class="card">
+        <div class="card-header">
+            <h4>
+                <i class="fas fa-users me-2"></i>Students Attendance - {{ selected_date.strftime('%B %d, %Y') }}
+                <span class="badge bg-primary ms-2">{{ students|length }} students</span>
+                <span class="badge bg-success ms-2" id="selectedCount">0 present (selected)</span>
+            </h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('mark_attendance') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                <input type="hidden" name="year" value="{{ year or '' }}">
+                <input type="hidden" name="section" value="{{ section or '' }}">
+                <input type="hidden" name="search" value="{{ search or '' }}">
+                
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Class Notes</label>
+                    <textarea name="notes" id="notes" class="form-control" rows="2" 
+                              placeholder="Optional notes about the class..."></textarea>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th width="60">
+                                    <div class="form-check">
+                                        <input type="checkbox" id="selectAll" class="form-check-input" 
+                                               onchange="toggleAllAttendance()">
+                                        <label for="selectAll" class="form-check-label">All</label>
+                                    </div>
+                                </th>
+                                <th>Student ID</th>
+                                <th>Name</th>
+                                <th>Year</th>
+                                <th>Section</th>
+                                <th>Current Status</th>
+                                <th>Attendance %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input type="checkbox" name="student_{{ student.id }}" 
+                                               id="student_{{ student.id }}" class="form-check-input attendance-checkbox"
+                                               {{ 'checked' if attendance_records.get(student.id) and attendance_records[student.id].present }}>
+                                        <label for="student_{{ student.id }}" class="form-check-label visually-hidden">Present</label>
+                                    </div>
+                                </td>
+                                <td><strong>{{ student.student_id }}</strong></td>
+                                <td>{{ student.name }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ student.academic_year }}{{ "st" if student.academic_year == 1 else ("nd" if student.academic_year == 2 else ("rd" if student.academic_year == 3 else "th")) }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ student.section }}</span>
+                                </td>
+                                <td>
+                                    {% set record = attendance_records.get(student.id) %}
+                                    {% if record %}
+                                        <span class="badge bg-{{ 'success' if record.present else 'danger' }}">
+                                            {{ 'Present' if record.present else 'Absent' }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Not marked</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if student.get_attendance_percentage() >= 80 else ('warning' if student.get_attendance_percentage() >= 60 else 'danger') }}">
+                                        {{ "%.1f"|format(student.get_attendance_percentage()) }}%
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Save Attendance
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-users fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No students found</h4>
+            <p class="text-muted">Please select different filters or add students to the system.</p>
+            <a href="{{ url_for('add_student') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus me-2"></i>Add Students
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-submit form when year changes to update section dropdown
+document.getElementById('year').addEventListener('change', function() {
+    // Clear the section selection when year changes
+    document.getElementById('section').value = '';
+    // Form already has onchange="this.form.submit()" so no need to submit here
+});
+
+function toggleAllAttendance() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    updateSelectedCount();
+}
+
+function markAllPresent() {
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    document.getElementById('selectAll').checked = true;
+    updateSelectedCount();
+}
+
+function markAllAbsent() {
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    document.getElementById('selectAll').checked = false;
+    updateSelectedCount();
+}
+
+// Update selected count display
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    const checkedCount = document.querySelectorAll('.attendance-checkbox:checked').length;
+    const totalCount = checkboxes.length;
+    const countBadge = document.getElementById('selectedCount');
+    
+    countBadge.textContent = checkedCount + ' present (selected)';
+    
+    // Change badge color based on selection
+    countBadge.className = 'badge ms-2';
+    if (checkedCount === totalCount) {
+        countBadge.classList.add('bg-success');
+    } else if (checkedCount === 0) {
+        countBadge.classList.add('bg-danger');
+    } else {
+        countBadge.classList.add('bg-warning');
+    }
+}
+
+// Update select all checkbox when individual checkboxes change
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.attendance-checkbox');
+    const selectAll = document.getElementById('selectAll');
+    
+    // Initial count update
+    updateSelectedCount();
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            const noneChecked = Array.from(checkboxes).every(cb => !cb.checked);
+            
+            if (allChecked) {
+                selectAll.checked = true;
+                selectAll.indeterminate = false;
+            } else if (noneChecked) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            } else {
+                selectAll.checked = false;
+                selectAll.indeterminate = true;
+            }
+            
+            // Update the selected count
+            updateSelectedCount();
+        });
+    });
+});
+</script>
+{% endblock %}

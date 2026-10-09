@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance History - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-history me-2"></i>Attendance History</h2>
+            <p class="text-muted">View attendance statistics and trends</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                <a href="{{ url_for('export_attendance_history_pdf', year=year, section=section) }}" class="btn btn-danger">
+                    <i class="fas fa-file-pdf me-2"></i>Print PDF
+                </a>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-file-excel me-2"></i>Export Excel
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('export_attendance_summary', year=year, section=section) }}">
+                            <i class="fas fa-chart-line me-2"></i>Summary Report
+                        </a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('export_attendance', year=year, section=section) }}">
+                            <i class="fas fa-list me-2"></i>Detailed Records
+                        </a></li>
+                    </ul>
+                </div>
+                <a href="{{ url_for('attendance_list') }}" class="btn btn-primary">
+                    <i class="fas fa-calendar-check me-2"></i>Mark Attendance
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="year" class="form-label">Academic Year</label>
+                    <select name="year" id="year" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Years</option>
+                        <option value="1" {{ 'selected' if year == 1 }}>1st Year</option>
+                        <option value="2" {{ 'selected' if year == 2 }}>2nd Year</option>
+                        <option value="3" {{ 'selected' if year == 3 }}>3rd Year</option>
+                        <option value="4" {{ 'selected' if year == 4 }}>4th Year</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="section" class="form-label">Section</label>
+                    <select name="section" id="section" class="form-select" onchange="this.form.submit()">
+                        <option value="">All Sections</option>
+                        {% for sect in sections %}
+                        <option value="{{ sect }}" {{ 'selected' if section == sect }}>Section {{ sect }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="w-100">
+                        <small class="text-muted">
+                            Showing {{ student_stats|length }} students
+                        </small>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Attendance Statistics -->
+    {% if student_stats %}
+    <div class="card">
+        <div class="card-header">
+            <h4><i class="fas fa-chart-line me-2"></i>Attendance Statistics</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student ID</th>
+                            <th>Name</th>
+                            <th>Year</th>
+                            <th>Section</th>
+                            <th>Total Classes</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <th>Percentage</th>
+                            <th>Attendance Grade</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in student_stats %}
+                        <tr>
+                            <td><strong>{{ stat.student.student_id }}</strong></td>
+                            <td>{{ stat.student.name }}</td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ stat.student.academic_year }}{{ "st" if stat.student.academic_year == 1 else ("nd" if stat.student.academic_year == 2 else ("rd" if stat.student.academic_year == 3 else "th")) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-secondary">{{ stat.student.section }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ stat.total_classes }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ stat.present_classes }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-danger">{{ stat.absent_classes }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if stat.percentage >= 80 else ('warning' if stat.percentage >= 60 else 'danger') }}">
+                                    {{ "%.1f"|format(stat.percentage) }}%
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ stat.student.calculate_attendance_marks() }}/5
+                                </span>
+                            </td>
+                            <td>
+                                {% if stat.percentage >= 90 %}
+                                    <span class="badge bg-success">Excellent</span>
+                                {% elif stat.percentage >= 80 %}
+                                    <span class="badge bg-info">Good</span>
+                                {% elif stat.percentage >= 70 %}
+                                    <span class="badge bg-warning">Fair</span>
+                                {% elif stat.percentage >= 60 %}
+                                    <span class="badge bg-warning">Poor</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mt-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h4>{{ student_stats|selectattr('percentage', 'ge', 80)|list|length }}</h4>
+                    <p class="mb-0">Good Attendance (≥80%)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                    <h4>{{ student_stats|selectattr('percentage', 'lt', 80)|selectattr('percentage', 'ge', 60)|list|length }}</h4>
+                    <p class="mb-0">Fair Attendance (60-79%)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                    <h4>{{ student_stats|selectattr('percentage', 'lt', 60)|list|length }}</h4>
+                    <p class="mb-0">Poor Attendance (<60%)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-percentage fa-2x text-info mb-2"></i>
+                    <h4>{{ "%.1f"|format((student_stats|sum(attribute='percentage') / student_stats|length) if student_stats else 0) }}%</h4>
+                    <p class="mb-0">Average Attendance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">No attendance records found</h4>
+            <p class="text-muted">Start marking attendance to see statistics here.</p>
+            <a href="{{ url_for('attendance_list') }}" class="btn btn-primary">
+                <i class="fas fa-calendar-check me-2"></i>Mark First Attendance
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-submit form when year changes to update section dropdown
+document.getElementById('year').addEventListener('change', function() {
+    // Clear the section selection when year changes
+    document.getElementById('section').value = '';
+    // Form already has onchange="this.form.submit()" so no need to submit here
+});
+</script>
+{% endblock %}

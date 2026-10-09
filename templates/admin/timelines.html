@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Academic Timelines - Admin{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h2><i class="fas fa-calendar me-2"></i>Academic Timelines</h2>
+            <p class="text-muted">Manage academic year timelines and data isolation</p>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{{ url_for('user_list') }}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-users me-2"></i>Manage Users
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-plus me-2"></i>Create New Timeline</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_timeline') }}" class="row g-3">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="col-md-3">
+                    <label for="year_input" class="form-label">Year</label>
+                    <input type="number" id="year_input" name="year" class="form-control" title="Academic Year" placeholder="e.g. 2026" min="2026" value="{{ (timelines[0].year + 1) if timelines else 2026 }}" required>
+                    <small class="text-muted">2026 or later</small>
+                </div>
+                <div class="col-md-5">
+                    <label for="name_input" class="form-label">Name (Optional)</label>
+                    <input type="text" id="name_input" name="name" class="form-control" title="Timeline Name" placeholder="e.g., Academic Year 2026-2027">
+                </div>
+                <div class="col-md-5">
+                    <label for="scheme_select" class="form-label">Base Grade Scheme (Optional)</label>
+                    <select id="scheme_select" name="grade_scheme_id" class="form-select" title="Grade Scheme">
+                        <option value="">-- No linked system --</option>
+                        {% for scheme in schemes %}
+                        <option value="{{ scheme.id }}">{{ scheme.name }} ({{ scheme.total_marks }} marks)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-plus me-2"></i>Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>All Timelines</h5>
+        </div>
+        <div class="card-body">
+            {% if timelines %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Year</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for timeline in timelines %}
+                        <tr>
+                            <td>
+                                <strong>{{ timeline.year }}</strong>
+                                {% if timeline.is_current %}
+                                <span class="badge bg-primary ms-2">Current</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ timeline.name or 'Academic Year ' ~ timeline.year }}</td>
+                            <td>
+                                {% if timeline.is_active %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ timeline.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    {% if not timeline.is_current %}
+                                    <form method="POST" action="{{ url_for('set_current_timeline', timeline_id=timeline.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="btn btn-outline-primary" title="Set as Current">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST" action="{{ url_for('toggle_timeline_active', timeline_id=timeline.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="btn btn-outline-{{ 'warning' if timeline.is_active else 'success' }}" 
+                                                title="{{ 'Deactivate' if timeline.is_active else 'Activate' }}">
+                                            <i class="fas fa-{{ 'pause' if timeline.is_active else 'play' }}"></i>
+                                        </button>
+                                    </form>
+                                    
+                                    {% if not timeline.is_current %}
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            data-bs-toggle="modal" data-bs-target="#deleteTimelineModal{{ timeline.id }}"
+                                            title="Delete Year">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-calendar fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No timelines yet</h4>
+                <p class="text-muted">Create your first academic timeline above.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Modals Container (Outside card to prevent flickering) -->
+    {% for timeline in timelines %}
+        {% if not timeline.is_current %}
+        <div class="modal fade" id="deleteTimelineModal{{ timeline.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Delete Academic Year {{ timeline.year }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-danger fw-bold">Warning: This is a highly destructive action!</p>
+                        <p>Are you sure you want to delete **Academic Year {{ timeline.year }}**?</p>
+                        <ul class="text-muted small">
+                            <li>All student records for this year will be deleted</li>
+                            <li>All grades and attendance data will be wiped</li>
+                            <li>Curriculums and schedules for this year will be removed</li>
+                            <li>Linked grading systems will be deleted</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <form method="POST" action="{{ url_for('delete_timeline', timeline_id=timeline.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="btn btn-danger">Yes, Wipe All Data</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    {% endfor %}
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>How It Works</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6><i class="fas fa-database text-primary me-2"></i>Data Isolation</h6>
+                    <p class="small text-muted">Each timeline contains completely separate data. Students, subjects, schedules, and grades in one year don't affect other years.</p>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="fas fa-user text-success me-2"></i>User Assignment</h6>
+                    <p class="small text-muted">Each user can be assigned to a specific year. They will only see and manage data from their assigned year.</p>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="fas fa-exchange-alt text-info me-2"></i>Year Switching</h6>
+                    <p class="small text-muted">Admin users can switch between years using the dropdown in the navigation bar to view or manage different timelines.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

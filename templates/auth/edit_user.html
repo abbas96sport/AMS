@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-edit me-2"></i>Edit User: {{ user.username }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            {{ form.username.label(class="form-label") }}
+                            {{ form.username(class="form-control" + (" is-invalid" if form.username.errors else "")) }}
+                            {% if form.username.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.username.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.full_name.label(class="form-label") }}
+                            {{ form.full_name(class="form-control" + (" is-invalid" if form.full_name.errors else "")) }}
+                            {% if form.full_name.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.full_name.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.email.label(class="form-label") }}
+                            {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), type="email") }}
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.email.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.photo.id }}" class="form-label">
+                                <i class="fas fa-camera me-1"></i>Profile Picture
+                            </label>
+                            {% if user.photo_filename %}
+                                <div class="mb-2">
+                                    <img src="{{ url_for('uploaded_photo', filename=user.photo_filename) }}" 
+                                         alt="{{ user.full_name }}" 
+                                         class="rounded"
+                                         style="max-width: 150px; max-height: 150px; object-fit: cover;">
+                                    <p class="text-muted small mt-1">Current profile picture</p>
+                                </div>
+                            {% endif %}
+                            {{ form.photo(class="form-control") }}
+                            {% if form.photo.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.photo.errors[0] }}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted">Upload a new picture to replace the current one. Accepted formats: JPG, JPEG, PNG, GIF</small>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3"><i class="fas fa-calendar me-2"></i>Data Year Assignment</h5>
+                        <div class="mb-4">
+                            <label for="{{ form.data_year.id }}" class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>Assigned Data Year
+                            </label>
+                            {{ form.data_year(class="form-select") }}
+                            <small class="text-muted">This user will only see and manage data from the selected year.</small>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3"><i class="fas fa-calendar-check me-2"></i>Subscription Settings</h5>
+                        <div class="mb-4">
+                            <label for="{{ form.subscription_expires_at.id }}" class="form-label">
+                                <i class="fas fa-clock me-1"></i>Subscription Expiration Date
+                            </label>
+                            {{ form.subscription_expires_at(class="form-control", type="date") }}
+                            {% if user.subscription_expires_at %}
+                                <small class="text-muted">Current: {{ user.subscription_expires_at.strftime('%Y-%m-%d') }}</small>
+                            {% else %}
+                                <small class="text-muted">Not set - unlimited access</small>
+                            {% endif %}
+                            <br>
+                            <small class="text-muted">Set the date when the user's subscription expires. Leave empty for unlimited access.</small>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3"><i class="fas fa-shield-alt me-2"></i>Access Restrictions</h5>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.has_restricted_access(class="form-check-input", id="has_restricted_access") }}
+                                <label class="form-check-label" for="has_restricted_access">
+                                    <i class="fas fa-lock me-1 text-danger"></i>Restrict Access
+                                </label>
+                            </div>
+                            <small class="text-muted">Enable to limit user access to specific years and sections.</small>
+                        </div>
+                        
+                        <div id="restrictions-section" {% if not user.has_restricted_access %}style="display: none;"{% endif %}>
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-graduation-cap me-1"></i>Allowed Years
+                                </label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    {% if available_years %}
+                                        {% for year in available_years %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="allowed_years_list" 
+                                                   value="{{ year }}" id="year_{{ year }}"
+                                                   {% if year|string in user_allowed_years %}checked{% endif %}>
+                                            <label class="form-check-label" for="year_{{ year }}">
+                                                Year {{ year }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <small class="text-muted">No years available in database</small>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">Select allowed years. Leave all unchecked for all years.</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-layer-group me-1"></i>Allowed Sections
+                                </label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    {% if available_sections %}
+                                        {% for section in available_sections %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="allowed_sections_list" 
+                                                   value="{{ section }}" id="section_{{ section }}"
+                                                   {% if section in user_allowed_sections %}checked{% endif %}>
+                                            <label class="form-check-label" for="section_{{ section }}">
+                                                Section {{ section }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <small class="text-muted">No sections available in database</small>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">Select allowed sections. Leave all unchecked for all sections.</small>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <h5 class="mb-3">Change Password (Optional)</h5>
+                        <p class="text-muted small">Leave blank to keep current password</p>
+
+                        <div class="mb-3">
+                            {{ form.password.label(class="form-label") }}
+                            {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else "")) }}
+                            {% if form.password.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.password.errors[0] }}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted">Minimum 8 characters</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.confirm_password.label(class="form-label") }}
+                            {{ form.confirm_password(class="form-control" + (" is-invalid" if form.confirm_password.errors else "")) }}
+                            {% if form.confirm_password.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.confirm_password.errors[0] }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{{ url_for('user_list') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Update User
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const restrictedAccessCheckbox = document.getElementById('has_restricted_access');
+    const restrictionsSection = document.getElementById('restrictions-section');
+    
+    function toggleRestrictions() {
+        if (restrictedAccessCheckbox.checked) {
+            restrictionsSection.style.display = 'block';
+        } else {
+            restrictionsSection.style.display = 'none';
+        }
+    }
+    
+    restrictedAccessCheckbox.addEventListener('change', toggleRestrictions);
+});
+</script>
+{% endblock %}

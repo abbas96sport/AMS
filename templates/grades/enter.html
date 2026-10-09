@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Grades - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-trophy me-2"></i>Enter Grades</h2>
+            <p class="text-muted">Enter grades for {{ student.name }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('grade_list', year=return_year, section=return_section, search=return_search) }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Grades
+            </a>
+        </div>
+    </div>
+
+    <!-- Student Info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <strong>Student ID:</strong> {{ student.student_id }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Name:</strong> {{ student.name }}
+                </div>
+                <div class="col-md-3">
+                    <strong>Year:</strong> {{ student.academic_year }}{{ "st" if student.academic_year == 1 else ("nd" if student.academic_year == 2 else ("rd" if student.academic_year == 3 else "th")) }} Year
+                </div>
+                <div class="col-md-3">
+                    <strong>Section:</strong> {{ student.section }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Form -->
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        
+        <div class="row">
+            <!-- First Semester -->
+            <div class="col-md-6 mb-4">
+                <div class="card border-primary">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>First Semester (20 marks)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="semester1_theory" class="form-label">Theoretical Exam (out of 5)</label>
+                            {{ form.semester1_theory(class="form-control") }}
+                            {% if form.semester1_theory.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.semester1_theory.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="semester1_practical" class="form-label">Practical Exam (out of 10)</label>
+                            {{ form.semester1_practical(class="form-control") }}
+                            {% if form.semester1_practical.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.semester1_practical.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Attendance:</strong> {{ grade.semester1_attendance or 0 }}/5 
+                            {% if grade.semester1_finalized %}
+                                <span class="badge bg-success ms-2">Finalized</span>
+                            {% else %}
+                                <span class="badge bg-warning ms-2">Not Finalized</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-center">
+                            <strong>Semester 1 Total: {{ grade.get_semester1_total() }}/20</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mid-Year Exam -->
+            <div class="col-md-6 mb-4">
+                <div class="card border-warning">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-pencil-alt me-2"></i>Mid-Year Exam (10 marks)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="midyear_exam" class="form-label">Mid-Year Exam (out of 10)</label>
+                            {{ form.midyear_exam(class="form-control") }}
+                            {% if form.midyear_exam.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.midyear_exam.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="text-center">
+                            <strong>Mid-Year Total: {{ grade.midyear_exam or 0 }}/10</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second Semester -->
+            <div class="col-md-6 mb-4">
+                <div class="card border-info">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Second Semester (20 marks)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="semester2_theory" class="form-label">Theoretical Exam (out of 5)</label>
+                            {{ form.semester2_theory(class="form-control") }}
+                            {% if form.semester2_theory.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.semester2_theory.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="semester2_practical" class="form-label">Practical Exam (out of 10)</label>
+                            {{ form.semester2_practical(class="form-control") }}
+                            {% if form.semester2_practical.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.semester2_practical.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Attendance:</strong> {{ grade.semester2_attendance or 0 }}/5 
+                            {% if grade.semester2_finalized %}
+                                <span class="badge bg-success ms-2">Finalized</span>
+                            {% else %}
+                                <span class="badge bg-warning ms-2">Not Finalized</span>
+                            {% endif %}
+                        </div>
+                        <div class="text-center">
+                            <strong>Semester 2 Total: {{ grade.get_semester2_total() }}/20</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Final Exam -->
+            <div class="col-md-6 mb-4">
+                <div class="card border-success">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Final Exam (50 marks)</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="final_theory" class="form-label">Final Theory Exam (out of 20)</label>
+                            {{ form.final_theory(class="form-control") }}
+                            {% if form.final_theory.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.final_theory.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="final_practical" class="form-label">Final Practical Exam (out of 30)</label>
+                            {{ form.final_practical(class="form-control") }}
+                            {% if form.final_practical.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.final_practical.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="text-center">
+                            <strong>Final Total: {{ grade.get_final_total() }}/50</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grade Summary -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4><i class="fas fa-calculator me-2"></i>Grade Summary</h4>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-2">
+                        <div class="border rounded p-3">
+                            <h5>{{ grade.get_semester1_total() }}</h5>
+                            <small>Semester 1</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3">
+                            <h5>{{ grade.midyear_exam or 0 }}</h5>
+                            <small>Mid-Year</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3">
+                            <h5>{{ grade.get_semester2_total() }}</h5>
+                            <small>Semester 2</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3">
+                            <h5>{{ grade.get_final_total() }}</h5>
+                            <small>Final Exam</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3 bg-primary text-white">
+                            <h5>{{ grade.get_total_grade() }}</h5>
+                            <small>Total Grade</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="border rounded p-3 bg-{{ 'success' if grade.is_passed() else 'danger' }} text-white">
+                            <h5>{{ 'PASS' if grade.is_passed() else 'FAIL' }}</h5>
+                            <small>Result</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+            <a href="{{ url_for('grade_list', year=return_year, section=return_section, search=return_search) }}" class="btn btn-secondary">
+                <i class="fas fa-times me-2"></i>Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>Save Grades
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

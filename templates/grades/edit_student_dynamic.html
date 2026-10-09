@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Student Grades - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h3 mb-0 text-white">Edit Student Grades</h2>
+                    <p class="text-muted">{{ student.name }} | {{ student.student_id }}</p>
+                </div>
+                <a href="{{ url_for('grade_list', year=student.academic_year, section=student.section) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Back to List
+                </a>
+            </div>
+
+            <div class="card shadow-sm border-0 bg-dark text-white">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Grading System: {{ scheme.name }}</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        {% for comp in scheme.components %}
+                        <div class="mb-4">
+                            <h6 class="text-primary fw-bold border-bottom border-secondary pb-2 mb-3">
+                                {{ comp.name }} <span class="badge bg-secondary ms-2 small">{{ comp.max_marks }} Marks</span>
+                            </h6>
+                            
+                            <div class="row g-3">
+                                {% for sub in comp.sub_components %}
+                                <div class="col-md-6">
+                                    <label for="grade_{{ sub.id }}" class="form-label small fw-bold">
+                                        {{ sub.name }} <span class="text-muted">(Max: {{ sub.max_marks }})</span>
+                                    </label>
+                                    
+                                    {% if sub.type == 'attendance' or comp.is_finalized %}
+                                        <div class="input-group">
+                                            <input type="number" step="0.1" name="grade_{{ sub.id }}" id="grade_{{ sub.id }}"
+                                                   class="form-control bg-light {{ 'border-success' if sub.type == 'attendance' else 'border-warning' }}" 
+                                                   value="{{ existing_entries.get(sub.id, 0) }}" readonly
+                                                   title="{{ 'Auto-calculated from attendance' if sub.type == 'attendance' else 'Finalized - Locked' }}">
+                                            <span class="input-group-text bg-{{ 'success' if sub.type == 'attendance' else 'warning' }} text-white border-{{ 'success' if sub.type == 'attendance' else 'warning' }}">
+                                                <i class="fas fa-{{ 'magic' if sub.type == 'attendance' else 'lock' }}"></i>
+                                            </span>
+                                        </div>
+                                        <div class="form-text text-{{ 'success' if sub.type == 'attendance' else 'warning' }} x-small mt-1">
+                                            {{ 'Automatically calculated from attendance.' if sub.type == 'attendance' else 'Locked: This component has been finalized.' }}
+                                        </div>
+                                    {% else %}
+                                        <input type="number" step="0.1" name="grade_{{ sub.id }}" id="grade_{{ sub.id }}"
+                                               class="form-control" 
+                                               value="{{ existing_entries.get(sub.id, 0) }}" 
+                                               max="{{ sub.max_marks }}" min="0">
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <hr class="my-4 border-secondary">
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save me-2"></i> Save All Grades for {{ student.name.split()[0] }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Summary Info -->
+            <div class="card mt-4 bg-dark text-white border-info border-start border-4">
+                <div class="card-body py-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-info-circle text-info fs-4 me-3"></i>
+                        <div>
+                            <p class="mb-0 small opacity-75">
+                                Grades entered here will be reflected in the main grades list and used for final result calculation according to the <strong>{{ scheme.name }}</strong> distribution.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .x-small { font-size: 0.75rem; }
+    .form-control:focus { background-color: #2b3035; color: white; border-color: #0d6efd; }
+    .bg-light.border-success { background-color: rgba(25, 135, 84, 0.1) !important; }
+</style>
+{% endblock %}

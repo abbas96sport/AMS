@@ -1,0 +1,348 @@
+{% extends 'base.html' %}
+
+{% block title %}QR Attendance Scanner{% endblock %}
+
+{% block content %}
+<!-- CSRF Token for API calls -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2><i class="fas fa-qrcode me-2"></i>QR Code Attendance Scanner</h2>
+            <p class="text-muted">Scan student QR codes to record attendance quickly</p>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card bg-dark mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3" id="filter-form">
+                <div class="col-md-3">
+                    <label class="form-label">Academic Year</label>
+                    <select name="year" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Select Year --</option>
+                        {% for y in available_years %}
+                        <option value="{{ y }}" {% if year == y %}selected{% endif %}>Year {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Section</label>
+                    <select name="section" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Select Section --</option>
+                        {% for s in available_sections %}
+                        <option value="{{ s }}" {% if section == s %}selected{% endif %}>Section {{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label"><i class="fas fa-calendar-alt me-1"></i>Attendance Date</label>
+                    <input type="date" name="scan_date" id="scan-date" class="form-control" 
+                           value="{{ scan_date }}" onchange="this.form.submit()">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <a href="{{ url_for('qr_student_cards', year=year, section=section) }}" class="btn btn-outline-success me-2">
+                        <i class="fas fa-id-card me-1"></i>Cards
+                    </a>
+                    <a href="{{ url_for('generate_all_qr_codes') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-sync me-1"></i>Generate
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Scanner Section -->
+        <div class="col-lg-6 mb-4">
+            <div class="card bg-dark h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-camera me-2"></i>Camera Scanner</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
+                    
+                    <div id="scan-result" class="mt-3" style="display: none;">
+                        <div class="alert alert-success" id="success-alert" style="display: none;">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <span id="success-message"></span>
+                        </div>
+                        <div class="alert alert-warning" id="duplicate-alert" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span id="duplicate-message"></span>
+                        </div>
+                        <div class="alert alert-danger" id="error-alert" style="display: none;">
+                            <i class="fas fa-times-circle me-2"></i>
+                            <span id="error-message"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <button id="start-btn" class="btn btn-success btn-lg">
+                            <i class="fas fa-play me-2"></i>Start Scanner
+                        </button>
+                        <button id="stop-btn" class="btn btn-danger btn-lg" style="display: none;">
+                            <i class="fas fa-stop me-2"></i>Stop Scanner
+                        </button>
+                    </div>
+                    
+                    <!-- Last Scanned -->
+                    <div id="last-scanned" class="mt-4" style="display: none;">
+                        <h6>Last Scanned:</h6>
+                        <div class="card bg-secondary">
+                            <div class="card-body">
+                                <h5 id="last-name" class="mb-1"></h5>
+                                <p id="last-id" class="mb-0 text-muted"></p>
+                                <small id="last-time" class="text-success"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Attendance for Selected Date -->
+        <div class="col-lg-6 mb-4">
+            <div class="card bg-dark h-100">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Attendance ({{ scan_date }})</h5>
+                    <span class="badge bg-light text-dark" id="attendance-count">
+                        {% set present_count = today_attendance|selectattr('present', 'equalto', true)|list|length %}
+                        {{ present_count }} / {{ today_attendance|length }}
+                    </span>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    {% if year and section %}
+                        {% if today_attendance %}
+                        <table class="table table-dark table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student Name</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendance-table">
+                                {% for item in today_attendance %}
+                                <tr id="student-row-{{ item.student.id }}">
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ item.student.name }}</td>
+                                    <td>
+                                        {% if item.present %}
+                                        <span class="badge bg-success"><i class="fas fa-check"></i> Present</span>
+                                        {% elif item.present == false %}
+                                        <span class="badge bg-danger"><i class="fas fa-times"></i> Absent</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary"><i class="fas fa-minus"></i> Not Marked</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ item.time or '-' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <p class="text-muted text-center">No students found for this selection</p>
+                        {% endif %}
+                    {% else %}
+                    <p class="text-muted text-center">Please select year and section to view attendance</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Sound -->
+<audio id="success-sound" preload="auto">
+    <source src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU" type="audio/wav">
+</audio>
+{% endblock %}
+
+{% block scripts %}
+<!-- HTML5 QR Code Scanner Library -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+let html5QrCode = null;
+let isScanning = false;
+let lastScannedCode = null;
+let scanCooldown = false;
+
+// Success beep sound
+function playSuccessSound() {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 800;
+    oscillator.type = 'sine';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+}
+
+// Error beep sound
+function playErrorSound() {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 300;
+    oscillator.type = 'square';
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+}
+
+function showAlert(type, message) {
+    document.getElementById('scan-result').style.display = 'block';
+    document.getElementById('success-alert').style.display = 'none';
+    document.getElementById('duplicate-alert').style.display = 'none';
+    document.getElementById('error-alert').style.display = 'none';
+    
+    if (type === 'success') {
+        document.getElementById('success-alert').style.display = 'block';
+        document.getElementById('success-message').textContent = message;
+    } else if (type === 'duplicate') {
+        document.getElementById('duplicate-alert').style.display = 'block';
+        document.getElementById('duplicate-message').textContent = message;
+    } else {
+        document.getElementById('error-alert').style.display = 'block';
+        document.getElementById('error-message').textContent = message;
+    }
+}
+
+function updateLastScanned(name, id, time) {
+    document.getElementById('last-scanned').style.display = 'block';
+    document.getElementById('last-name').textContent = name;
+    document.getElementById('last-id').textContent = 'ID: ' + id;
+    document.getElementById('last-time').textContent = 'Time: ' + time;
+}
+
+async function onScanSuccess(decodedText) {
+    // Prevent duplicate scans within 3 seconds
+    if (scanCooldown || decodedText === lastScannedCode) {
+        return;
+    }
+    
+    scanCooldown = true;
+    lastScannedCode = decodedText;
+    
+    // Get selected date from date picker
+    const scanDate = document.getElementById('scan-date').value;
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    
+    try {
+        const response = await fetch('/api/qr/record-attendance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ 
+                qr_code: decodedText,
+                scan_date: scanDate 
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            playSuccessSound();
+            showAlert('success', data.message);
+            updateLastScanned(data.student_name, data.student_id, data.time);
+            
+            // Update table if visible
+            updateAttendanceTable(data);
+        } else if (data.status === 'duplicate') {
+            playErrorSound();
+            showAlert('duplicate', data.message);
+        } else {
+            playErrorSound();
+            showAlert('error', data.message);
+        }
+    } catch (error) {
+        playErrorSound();
+        showAlert('error', 'Failed to record attendance: ' + error.message);
+    }
+    
+    // Reset cooldown after 2 seconds
+    setTimeout(() => {
+        scanCooldown = false;
+        lastScannedCode = null;
+    }, 2000);
+}
+
+function updateAttendanceTable(data) {
+    const rows = document.querySelectorAll('#attendance-table tr');
+    rows.forEach(row => {
+        const nameCell = row.querySelector('td:nth-child(2)');
+        if (nameCell && nameCell.textContent.trim() === data.student_name) {
+            const statusCell = row.querySelector('td:nth-child(3)');
+            const timeCell = row.querySelector('td:nth-child(4)');
+            statusCell.innerHTML = '<span class="badge bg-success"><i class="fas fa-check"></i> Present</span>';
+            timeCell.textContent = data.time;
+            row.classList.add('table-success');
+            setTimeout(() => row.classList.remove('table-success'), 2000);
+        }
+    });
+    
+    // Update count
+    const presentCount = document.querySelectorAll('#attendance-table .badge.bg-success').length;
+    const totalCount = document.querySelectorAll('#attendance-table tr').length;
+    document.getElementById('attendance-count').textContent = presentCount + ' / ' + totalCount;
+}
+
+function startScanner() {
+    html5QrCode = new Html5Qrcode("reader");
+    
+    html5QrCode.start(
+        { facingMode: "environment" },
+        {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        },
+        onScanSuccess,
+        (errorMessage) => {
+            // Ignore scan errors
+        }
+    ).then(() => {
+        isScanning = true;
+        document.getElementById('start-btn').style.display = 'none';
+        document.getElementById('stop-btn').style.display = 'inline-block';
+    }).catch(err => {
+        showAlert('error', 'Failed to start camera: ' + err);
+    });
+}
+
+function stopScanner() {
+    if (html5QrCode && isScanning) {
+        html5QrCode.stop().then(() => {
+            isScanning = false;
+            document.getElementById('start-btn').style.display = 'inline-block';
+            document.getElementById('stop-btn').style.display = 'none';
+            document.getElementById('reader').innerHTML = '';
+        });
+    }
+}
+
+document.getElementById('start-btn').addEventListener('click', startScanner);
+document.getElementById('stop-btn').addEventListener('click', stopScanner);
+</script>
+{% endblock %}

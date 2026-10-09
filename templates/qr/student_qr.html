@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}QR Code - {{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card bg-dark text-center">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="fas fa-qrcode me-2"></i>Student QR Code</h4>
+                </div>
+                <div class="card-body">
+                    <!-- Student Photo if available -->
+                    {% if student.photo_filename %}
+                    <div class="mb-3">
+                        <img src="{{ url_for('uploaded_photo', filename=student.photo_filename) }}" 
+                             alt="{{ student.name }}" 
+                             class="rounded-circle"
+                             style="width: 100px; height: 100px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+                    
+                    <!-- QR Code -->
+                    <div class="mb-4 p-3 bg-white d-inline-block rounded">
+                        <img src="data:image/png;base64,{{ qr_image }}" 
+                             alt="QR Code for {{ student.name }}" 
+                             style="max-width: 300px;">
+                    </div>
+                    
+                    <!-- Student Info -->
+                    <h3 class="mb-2">{{ student.name }}</h3>
+                    <p class="lead mb-1">ID: {{ student.student_id }}</p>
+                    <p class="text-muted mb-3">
+                        Year {{ student.academic_year }} - Section {{ student.section }}
+                    </p>
+                    
+                    {% if student.email %}
+                    <p class="small text-muted mb-0">
+                        <i class="fas fa-envelope me-1"></i>{{ student.email }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary me-2" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>Print Card
+                    </button>
+                    <a href="{{ url_for('qr_student_cards', year=student.academic_year, section=student.section) }}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Cards
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .navbar, footer, .card-footer {
+        display: none !important;
+    }
+    
+    .card {
+        border: 2px solid #000 !important;
+        background: white !important;
+        color: black !important;
+    }
+    
+    .card-header {
+        background: #28a745 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    
+    h3, p {
+        color: black !important;
+    }
+    
+    .text-muted {
+        color: #666 !important;
+    }
+}
+</style>
+{% endblock %}

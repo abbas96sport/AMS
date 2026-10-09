@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-chart-bar me-2"></i>Reports & Analytics</h2>
+            <p class="text-muted">Comprehensive analytics and performance insights</p>
+        </div>
+        <div class="col-md-4 text-end d-print-none">
+            <button class="btn btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print me-2"></i>Print Report
+            </button>
+        </div>
+    </div>
+
+    <style>
+    @media print {
+        .sidebar, .navbar, .d-print-none, .btn, .breadcrumb, nav {
+            display: none !important;
+        }
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .card {
+            border: 1px solid #ddd !important;
+            break-inside: avoid;
+            margin-bottom: 20px !important;
+            box-shadow: none !important;
+        }
+        .card-header {
+            background-color: #f8f9fa !important;
+            color: #000 !important;
+            border-bottom: 1px solid #ddd !important;
+        }
+        body {
+            background-color: white !important;
+            font-size: 10pt;
+        }
+        .main-content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+        }
+        h2, h3, h4 {
+            color: #1b5e20 !important;
+        }
+        .progress {
+            border: 1px solid #ddd;
+        }
+        .progress-bar {
+            background-color: #28a745 !important;
+            -webkit-print-color-adjust: exact;
+        }
+    }
+    </style>
+
+    <div class="d-none d-print-block mb-4 text-center">
+        <h1 class="text-success">Academic Performance Report</h1>
+        <p class="text-muted">Generated on {{ now.strftime('%Y-%m-%d %H:%M') if now else '' }} | Prepared by: {{ current_user.full_name or current_user.username }}</p>
+        <hr>
+    </div>
+
+    <!-- Overall Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                    <h3 class="card-title">{{ total_students }}</h3>
+                    <p class="card-text">Total Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <i class="fas fa-trophy fa-3x text-success mb-3"></i>
+                    <h3 class="card-title">{{ passed_students }}</h3>
+                    <p class="card-text">Passed Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body text-center">
+                    <i class="fas fa-times-circle fa-3x text-danger mb-3"></i>
+                    <h3 class="card-title">{{ failed_students }}</h3>
+                    <p class="card-text">Failed Students</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <i class="fas fa-percentage fa-3x text-info mb-3"></i>
+                    <h3 class="card-title">
+                        {% if total_students > 0 %}
+                            {{ "%.1f"|format((passed_students / total_students) * 100) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </h3>
+                    <p class="card-text">Pass Rate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-chart-line me-2"></i>Grade Distribution by Year</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="gradeDistributionChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4><i class="fas fa-chart-pie me-2"></i>Pass/Fail Distribution</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="passFailChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Analysis -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    <h4><i class="fas fa-award me-2"></i>Best Attendance</h4>
+                </div>
+                <div class="card-body">
+                    {% if best_attendance %}
+                        <div class="list-group list-group-flush">
+                            {% for student in best_attendance %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ student.name }}</strong><br>
+                                    <small class="text-muted">{{ student.student_id }} - Year {{ student.academic_year }}{{ student.section }}</small>
+                                </div>
+                                <span class="badge bg-success rounded-pill">
+                                    {{ "%.1f"|format(student.get_attendance_percentage()) }}%
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                            <p>No attendance data available</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning text-dark">
+                    <h4><i class="fas fa-exclamation-triangle me-2"></i>Needs Attention</h4>
+                </div>
+                <div class="card-body">
+                    {% if worst_attendance %}
+                        <div class="list-group list-group-flush">
+                            {% for student in worst_attendance %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ student.name }}</strong><br>
+                                    <small class="text-muted">{{ student.student_id }} - Year {{ student.academic_year }}{{ student.section }}</small>
+                                </div>
+                                <span class="badge bg-{{ 'danger' if student.get_attendance_percentage() < 60 else 'warning' }} rounded-pill">
+                                    {{ "%.1f"|format(student.get_attendance_percentage()) }}%
+                                </span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted">
+                            <i class="fas fa-smile fa-3x mb-3"></i>
+                            <p>All students have good attendance!</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grade Breakdown Analysis -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4><i class="fas fa-calculator me-2"></i>Grade Component Analysis</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <canvas id="gradeComponentChart" width="400" height="300"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Component</th>
+                                    <th>Max Points</th>
+                                    <th>Avg Score</th>
+                                    <th>Performance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in component_stats %}
+                                <tr>
+                                    <td><i class="fas fa-chart-bar text-{{ stat.label }} me-2"></i>{{ stat.name }}</td>
+                                    <td>{{ stat.max }}</td>
+                                    <td class="fw-bold">{{ stat.avg }}</td>
+                                    <td><span class="badge bg-{{ stat.label }}">{{ stat.level }}</span></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Academic Year Performance -->
+    <div class="card">
+        <div class="card-header">
+            <h4><i class="fas fa-graduation-cap me-2"></i>Performance by Academic Year</h4>
+        </div>
+        <div class="card-body">
+            {% if grade_distribution %}
+            <div class="row">
+                {% for year, avg_grade in grade_distribution %}
+                <div class="col-md-3 mb-3">
+                    <div class="card border-primary h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                            <h5>{{ year }}{{ "st" if year == 1 else ("nd" if year == 2 else ("rd" if year == 3 else "th")) }} Year</h5>
+                            <h3 class="text-primary">{{ "%.1f"|format(avg_grade or 0) }}</h3>
+                            <p class="mb-0">Average Grade</p>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ ((avg_grade or 0) / 100) * 100 }}%"
+                                     aria-valuenow="{{ avg_grade or 0 }}" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-chart-bar fa-4x mb-3"></i>
+                <h5>No grade data available</h5>
+                <p>Start entering grades to see performance analytics.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Grade Distribution by Year Chart
+{% if grade_distribution %}
+const gradeDistData = {
+    labels: [
+        {% for year, avg_grade in grade_distribution %}
+            '{{ year }}{{ "st" if year == 1 else ("nd" if year == 2 else ("rd" if year == 3 else "th")) }} Year'{{ "," if not loop.last }}
+        {% endfor %}
+    ],
+    datasets: [{
+        label: 'Average Grade',
+        data: [
+            {% for year, avg_grade in grade_distribution %}
+                {{ avg_grade or 0 }}{{ "," if not loop.last }}
+            {% endfor %}
+        ],
+        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 2,
+        fill: true
+    }]
+};
+
+const gradeDistChart = new Chart(document.getElementById('gradeDistributionChart'), {
+    type: 'line',
+    data: gradeDistData,
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+{% endif %}
+
+// Pass/Fail Distribution Chart
+const passFailData = {
+    labels: ['Passed', 'Failed'],
+    datasets: [{
+        data: [{{ passed_students }}, {{ failed_students }}],
+        backgroundColor: [
+            'rgba(40, 167, 69, 0.8)',
+            'rgba(220, 53, 69, 0.8)'
+        ],
+        borderColor: [
+            'rgba(40, 167, 69, 1)',
+            'rgba(220, 53, 69, 1)'
+        ],
+        borderWidth: 2
+    }]
+};
+
+const passFailChart = new Chart(document.getElementById('passFailChart'), {
+    type: 'doughnut',
+    data: passFailData,
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
+});
+
+// Grade Component Analysis Chart
+const componentData = {
+    labels: [
+        {% for stat in component_stats %}
+            '{{ stat.name }} ({{ stat.max }})'{{ "," if not loop.last }}
+        {% endfor %}
+    ],
+    datasets: [{
+        label: 'Average Score',
+        data: [
+            {% for stat in component_stats %}
+                {{ stat.avg }}{{ "," if not loop.last }}
+            {% endfor %}
+        ],
+        backgroundColor: [
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(255, 193, 7, 0.8)',
+            'rgba(23, 162, 184, 0.8)',
+            'rgba(40, 167, 69, 0.8)',
+            'rgba(153, 102, 255, 0.8)',
+            'rgba(255, 159, 64, 0.8)'
+        ],
+        borderColor: [
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 193, 7, 1)',
+            'rgba(23, 162, 184, 1)',
+            'rgba(40, 167, 69, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)'
+        ],
+        borderWidth: 2
+    }]
+};
+
+const componentChart = new Chart(document.getElementById('gradeComponentChart'), {
+    type: 'bar',
+    data: componentData,
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

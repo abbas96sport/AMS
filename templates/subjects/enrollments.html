@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}{{ subject.name }} Enrollments - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('subject_list') }}">Subjects</a></li>
+            <li class="breadcrumb-item active">{{ subject.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>
+                <span class="me-2" style="width: 16px; height: 16px; border-radius: 50%; background-color: {{ subject.color }}; display: inline-block;"></span>
+                {{ subject.name }}
+            </h2>
+            <p class="text-muted mb-0">{{ enrollments|length }} student(s) enrolled</p>
+        </div>
+        <div>
+            <a href="{{ url_for('bulk_enroll_subject', subject_id=subject.id) }}" class="btn btn-success">
+                <i class="fas fa-users me-1"></i>Bulk Enroll
+            </a>
+            <a href="{{ url_for('subject_list') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Subjects
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Enrolled Students -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-check me-2"></i>Enrolled Students</h5>
+                </div>
+                <div class="card-body">
+                    {% if enrollments %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Student ID</th>
+                                    <th>Name</th>
+                                    <th>Year</th>
+                                    <th>Section</th>
+                                    <th>Enrolled</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for enrollment, student in enrollments %}
+                                <tr>
+                                    <td><code>{{ student.student_id }}</code></td>
+                                    <td>{{ student.name }}</td>
+                                    <td><span class="badge bg-primary">Year {{ student.academic_year }}</span></td>
+                                    <td><span class="badge bg-secondary">{{ student.section }}</span></td>
+                                    <td class="text-muted small">{{ enrollment.enrolled_at.strftime('%Y-%m-%d') if enrollment.enrolled_at else '-' }}</td>
+                                    <td>
+                                        <form action="{{ url_for('unenroll_student_from_subject', subject_id=subject.id, student_id=student.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Unenroll {{ student.name }} from {{ subject.name }}?');">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-user-minus"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Students Enrolled</h5>
+                        <p class="text-muted">Use the quick enroll panel or bulk enroll to add students.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Enroll Panel -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-plus me-2"></i>Quick Enroll</h5>
+                </div>
+                <div class="card-body">
+                    {% if available_students %}
+                    <form action="{{ url_for('enroll_students_in_subject', subject_id=subject.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div class="mb-3">
+                            <input type="text" id="studentSearch" class="form-control" placeholder="Search students...">
+                        </div>
+                        
+                        <div class="alert alert-info py-2" id="enrollSelectedCount">
+                            <i class="fas fa-check-square me-1"></i><span id="enrollCountText">0</span> student(s) selected
+                        </div>
+                        
+                        <div class="student-list" style="max-height: 400px; overflow-y: auto;">
+                            {% for student in available_students %}
+                            <div class="form-check student-item mb-2">
+                                <input class="form-check-input" type="checkbox" name="student_ids" value="{{ student.id }}" id="student_{{ student.id }}">
+                                <label class="form-check-label" for="student_{{ student.id }}">
+                                    <strong>{{ student.name }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ student.student_id }} - Year {{ student.academic_year }}{{ student.section }}</small>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-plus me-1"></i>Enroll Selected
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="text-center py-3">
+                        <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                        <p class="text-muted mb-0">All students are already enrolled!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('studentSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('.student-item').forEach(function(item) {
+                const text = item.textContent.toLowerCase();
+                item.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+    
+    // Update selected count for enrollment checkboxes
+    function updateEnrollSelectedCount() {
+        const checkboxes = document.querySelectorAll('.student-item input[type="checkbox"]');
+        const checkedCount = document.querySelectorAll('.student-item input[type="checkbox"]:checked').length;
+        const countText = document.getElementById('enrollCountText');
+        const countAlert = document.getElementById('enrollSelectedCount');
+        
+        if (countText) {
+            countText.textContent = checkedCount;
+            
+            // Change alert color based on selection
+            countAlert.className = 'alert py-2';
+            if (checkedCount > 0) {
+                countAlert.classList.add('alert-success');
+            } else {
+                countAlert.classList.add('alert-info');
+            }
+        }
+    }
+    
+    // Add event listeners to all checkboxes
+    const checkboxes = document.querySelectorAll('.student-item input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateEnrollSelectedCount);
+    });
+    
+    // Initial count
+    updateEnrollSelectedCount();
+});
+</script>
+{% endblock %}

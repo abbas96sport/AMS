@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}Student QR Cards{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-id-card me-2"></i>Student QR Cards</h2>
+                <p class="text-muted">View and print student QR code cards for attendance</p>
+            </div>
+            <div>
+                <a href="{{ url_for('qr_attendance_page', year=year, section=section) }}" class="btn btn-outline-success">
+                    <i class="fas fa-qrcode me-1"></i>Scan Attendance
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card bg-dark mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Academic Year</label>
+                    <select name="year" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Select Year --</option>
+                        {% for y in available_years %}
+                        <option value="{{ y }}" {% if year == y %}selected{% endif %}>Year {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Section</label>
+                    <select name="section" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Select Section --</option>
+                        {% for s in available_sections %}
+                        <option value="{{ s }}" {% if section == s %}selected{% endif %}>Section {{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    {% if year and section and student_cards %}
+                    <a href="{{ url_for('print_qr_cards_pdf', year=year, section=section) }}" class="btn btn-success me-2">
+                        <i class="fas fa-file-pdf me-1"></i>Download PDF
+                    </a>
+                    <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                        <i class="fas fa-print me-1"></i>Print
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    {% if year and section %}
+        {% if student_cards %}
+        <!-- Student Cards Grid -->
+        <div class="row" id="cards-container">
+            {% for card in student_cards %}
+            <div class="col-6 col-md-4 col-lg-3 mb-4">
+                <div class="card bg-dark text-center h-100 student-card">
+                    <div class="card-body">
+                        <img src="data:image/png;base64,{{ card.qr_image }}" 
+                             alt="QR Code for {{ card.student.name }}" 
+                             class="img-fluid mb-2"
+                             style="max-width: 150px;">
+                        <h6 class="card-title mb-1">{{ card.student.name }}</h6>
+                        <p class="card-text small text-muted mb-0">ID: {{ card.student.student_id }}</p>
+                        <p class="card-text small text-muted">Year {{ card.student.academic_year }} - Section {{ card.student.section }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ url_for('view_student_qr', student_id=card.student.id) }}" 
+                           class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-expand me-1"></i>View Full
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-3">
+            <p class="text-muted">Total: {{ student_cards|length }} students</p>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No students found for Year {{ year }} Section {{ section }}
+        </div>
+        {% endif %}
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        Please select both year and section to view student QR cards
+    </div>
+    {% endif %}
+</div>
+
+<style>
+@media print {
+    .navbar, footer, .card-footer, form, .btn {
+        display: none !important;
+    }
+    
+    .student-card {
+        border: 1px solid #000 !important;
+        background: white !important;
+        color: black !important;
+        page-break-inside: avoid;
+    }
+    
+    .student-card .card-title,
+    .student-card .card-text {
+        color: black !important;
+    }
+    
+    .col-6, .col-md-4, .col-lg-3 {
+        width: 33.33% !important;
+        max-width: 33.33% !important;
+    }
+}
+</style>
+{% endblock %}

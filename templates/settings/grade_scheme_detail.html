@@ -1,0 +1,381 @@
+{% extends "base.html" %}
+
+{% block title %}Grade Distribution Detail - Academic System{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('grade_system_list') }}">Grade Systems</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Setup #{{ scheme.id }}</li>
+                </ol>
+            </nav>
+            <h2 class="h3 mb-0 text-white">
+                <i class="fas fa-edit me-2 text-primary"></i>{{ scheme.name or "Unnamed Scheme" }}
+                <button class="btn btn-sm btn-link text-primary p-0 ms-2" data-bs-toggle="modal" data-bs-target="#editSchemeNameModal">
+                    <i class="fas fa-pen-to-square"></i>
+                </button>
+            </h2>
+            <p class="text-muted">Academic Year: {{ scheme.data_year }} | Define components and sub-categories</p>
+        </div>
+        <div class="text-end">
+            {% if scheme.is_default %}
+                <span class="badge bg-success fs-6 p-2 mb-2 d-block"><i class="fas fa-check-circle me-1"></i> Current Default System</span>
+            {% else %}
+                <button type="button" class="btn btn-warning btn-sm mb-2" data-bs-toggle="modal" data-bs-target="#activateSchemeModal">
+                    <i class="fas fa-bolt me-1"></i> Set as Default & Migrate Grades
+                </button>
+            {% endif %}
+            <span class="badge bg-primary fs-6 p-2">Target Total: {{ scheme.total_marks }} Marks</span>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Structure Area -->
+        <div class="col-lg-8">
+            {% for comp in scheme.components %}
+            <div class="card shadow-sm mb-4 border-0 border-start border-4 border-primary">
+                <div class="card-header bg-dark border-bottom border-secondary d-flex justify-content-between align-items-center py-3">
+                    <h5 class="mb-0 fw-bold text-white">
+                        {{ comp.name }} 
+                        <span class="badge bg-secondary text-white border ms-2">{{ comp.max_marks }} marks</span>
+                        {% if comp.is_finalized %}
+                            <span class="badge bg-success ms-2"><i class="fas fa-lock me-1"></i> Finalized</span>
+                        {% endif %}
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <form action="{{ url_for('toggle_finalize_component', comp_id=comp.id) }}" method="POST" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-outline-{{ 'warning' if comp.is_finalized else 'success' }}">
+                                <i class="fas fa-{{ 'unlock' if comp.is_finalized else 'check-double' }}"></i> 
+                                {{ 'Open for Editing' if comp.is_finalized else 'Finalize' }}
+                            </button>
+                        </form>
+                        {% if not comp.is_finalized %}
+                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editCompModal{{ comp.id }}">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteCompModal{{ comp.id }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSubModal{{ comp.id }}">
+                                <i class="fas fa-plus-circle"></i> Add Sub-Category
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-dark border-bottom border-secondary">
+                                <tr class="small text-uppercase text-light">
+                                    <th class="ps-4">Sub-Category Name</th>
+                                    <th>Weight</th>
+                                    <th>Input Type</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sub in comp.sub_components %}
+                                <tr>
+                                    <td class="ps-4 fw-bold text-white">{{ sub.name }}</td>
+                                    <td class="text-light fw-normal opacity-75">{{ sub.max_marks }} marks</td>
+                                    <td>
+                                        {% if sub.type == 'attendance' %}
+                                            <span class="badge bg-success-light text-success border border-success-subtle"><i class="fas fa-clock me-1"></i> Auto Attendance</span>
+                                        {% else %}
+                                            <span class="badge bg-info-light text-info border border-info-subtle"><i class="fas fa-keyboard me-1"></i> Manual Entry</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-link link-primary p-0" data-bs-toggle="modal" data-bs-target="#editSubModal{{ sub.id }}" title="Edit Sub-Category">
+                                            <i class="fas fa-pen-to-square"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-link link-danger p-0 ms-3" data-bs-toggle="modal" data-bs-target="#deleteSubModal{{ sub.id }}" title="Delete Sub-Category">
+                                            <i class="fas fa-trash-can"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted small">No sub-categories added yet. Add items to complete the {{ comp.max_marks }} marks.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            {% if not scheme.components %}
+            <div class="text-center py-5 bg-dark border border-secondary shadow-sm rounded-3">
+                <i class="fas fa-layer-group fs-1 text-muted mb-3 d-block"></i>
+                <h5>Build Your Distribution</h5>
+                <p class="text-muted small">Start by adding main sections like "1st Semester" or "Final Exams"</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCompModal">
+                    <i class="fas fa-plus"></i> Add Main Component
+                </button>
+            </div>
+            {% else %}
+            <button class="btn btn-outline-primary btn-lg w-100 border-dashed py-3" data-bs-toggle="modal" data-bs-target="#addCompModal">
+                <i class="fas fa-plus-circle me-1"></i> Add Another Main Component
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar / Guidance -->
+        <div class="col-lg-4 mt-4 mt-lg-0">
+            <div class="card border-0 shadow-sm mb-4 bg-dark border-start border-4 border-info">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3 text-info"><i class="fas fa-info-circle me-1"></i> Guidance</h6>
+                    <ul class="small text-light opacity-75 ps-3 mb-0">
+                        <li class="mb-2">Total weights of all components should equal <b>{{ scheme.total_marks }}</b>.</li>
+                        <li class="mb-2">"Attendance" type automatically pulls from daily attendance records.</li>
+                        <li class="mb-2">Example: 1st Semester (25) could have: Theory(10), Practical(10), Attendance(5).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODALS SECTION
+     Placed outside of table loops to prevent flickering 
+     ========================================== -->
+
+<!-- Edit Scheme Name Modal -->
+<div class="modal fade" id="editSchemeNameModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('view_grade_scheme', scheme_id=scheme.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-dark text-white border-0">
+                    <h5 class="modal-title">Rename System</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">System Name</label>
+                        <input type="text" name="scheme_name" class="form-control" value="{{ scheme.name }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="submit" class="btn btn-primary px-4">Update Name</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Activate Scheme Modal -->
+<div class="modal fade" id="activateSchemeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('activate_grade_scheme', scheme_id=scheme.id) }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header bg-warning text-dark border-0">
+                    <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Activate This System?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <p>Activating <strong>"{{ scheme.name }}"</strong> will make it the default grading system for Year {{ scheme.data_year }}.</p>
+                    <div class="alert alert-info py-2 small">
+                        <i class="fas fa-sync me-2"></i> <strong>Migration:</strong> Existing grades for "Mid-Year", "Practical", and "Attendance" will be automatically copied to their corresponding new sub-categories.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning px-4">Activate & Migrate Now</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="addCompModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('add_grade_component', scheme_id=scheme.id) }}" method="POST">
+                {{ comp_form.csrf_token }}
+                <div class="modal-header bg-dark text-white border-0">
+                    <h5 class="modal-title">Add Main Component</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Component Name</label>
+                        {{ comp_form.name(class="form-control", placeholder="e.g., 1st Semester") }}
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">Max Marks (from {{ scheme.total_marks }})</label>
+                        {{ comp_form.max_marks(class="form-control") }}
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="submit" class="btn btn-primary px-4">Add Component</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% for comp in scheme.components %}
+<!-- Edit Component Modal -->
+<div class="modal fade" id="editCompModal{{ comp.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('edit_grade_component', comp_id=comp.id) }}" method="POST">
+                {{ comp_form.csrf_token }}
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title">Edit Component: {{ comp.name }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Component Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ comp.name }}" required>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">Max Marks</label>
+                        <input type="number" name="max_marks" class="form-control" value="{{ comp.max_marks }}" required step="0.1">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="submit" class="btn btn-primary px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Component Modal -->
+<div class="modal fade" id="deleteCompModal{{ comp.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title">Delete Component?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 text-start">
+                <p>Are you sure you want to delete **{{ comp.name }}**?</p>
+                <div class="alert alert-warning py-2 small">
+                    <i class="fas fa-exclamation-triangle me-2"></i> This will delete all sub-categories and grades associated with this component.
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-0 text-start">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form action="{{ url_for('delete_grade_component', comp_id=comp.id) }}" method="POST" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Permanently</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Sub-Component Modal -->
+<div class="modal fade" id="addSubModal{{ comp.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form action="{{ url_for('add_grade_sub_component', comp_id=comp.id) }}" method="POST">
+                {{ sub_form.csrf_token }}
+                <div class="modal-header bg-primary text-white border-0">
+                    <h5 class="modal-title">New Entry for {{ comp.name }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Sub-Category Name</label>
+                        {{ sub_form.name(class="form-control", placeholder="Theory, Practical, Attendance...") }}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Weight (from {{ comp.max_marks }})</label>
+                            {{ sub_form.max_marks(class="form-control") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Input Type</label>
+                            {{ sub_form.type(class="form-select") }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="submit" class="btn btn-primary px-4">Add to {{ comp.name }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+    {% for sub in comp.sub_components %}
+    <!-- Edit Sub-Component Modal -->
+    <div class="modal fade" id="editSubModal{{ sub.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow">
+                <form action="{{ url_for('edit_grade_sub_component', sub_id=sub.id) }}" method="POST">
+                    {{ sub_form.csrf_token }}
+                    <div class="modal-header bg-info text-white border-0">
+                        <h5 class="modal-title">Edit Sub-Category: {{ sub.name }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 text-start">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">Name</label>
+                            <input type="text" name="name" class="form-control" value="{{ sub.name }}" required>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Weight</label>
+                                <input type="number" name="max_marks" class="form-control" value="{{ sub.max_marks }}" required step="0.1">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Input Type</label>
+                                <select name="type" class="form-select">
+                                    <option value="manual" {% if sub.type == 'manual' %}selected{% endif %}>Manual Entry</option>
+                                    <option value="attendance" {% if sub.type == 'attendance' %}selected{% endif %}>Auto Attendance</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-0">
+                        <button type="submit" class="btn btn-info text-white px-4">Save Sub-Category</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Sub-Component Modal -->
+    <div class="modal fade" id="deleteSubModal{{ sub.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content border-0 shadow text-start">
+                <div class="modal-header bg-danger text-white border-0">
+                    <h5 class="modal-title">Remove Sub-Category?</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p>Are you sure you want to remove **{{ sub.name }}** from {{ comp.name }}?</p>
+                    <p class="small text-muted">This will permanently delete any grades entered for this item.</p>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <form action="{{ url_for('delete_grade_sub_component', sub_id=sub.id) }}" method="POST" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endfor %}
+
+<style>
+    .bg-success-light { background-color: rgba(25, 135, 84, 0.1); }
+    .bg-info-light { background-color: rgba(13, 202, 240, 0.1); }
+    .border-dashed { border-style: dashed !important; }
+</style>
+{% endblock %}

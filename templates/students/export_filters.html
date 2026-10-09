@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Export Students - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2><i class="fas fa-file-excel me-2"></i>Export Students to Excel</h2>
+            <p class="text-muted">Select filters to export a customized student list</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('student_list') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Students
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Selection -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Export Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('export_students') }}" id="exportForm">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="year" class="form-label">Academic Year (Optional)</label>
+                        <select name="year" id="year" class="form-select">
+                            <option value="">All Years</option>
+                            <option value="1" {{ 'selected' if year == 1 }}>1st Year</option>
+                            <option value="2" {{ 'selected' if year == 2 }}>2nd Year</option>
+                            <option value="3" {{ 'selected' if year == 3 }}>3rd Year</option>
+                            <option value="4" {{ 'selected' if year == 4 }}>4th Year</option>
+                        </select>
+                        <div class="form-text">Leave blank to export all academic years</div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="section" class="form-label">Section (Optional)</label>
+                        <select name="section" id="section" class="form-select">
+                            <option value="">All Sections</option>
+                            {% for sect in sections %}
+                            <option value="{{ sect }}" {{ 'selected' if section == sect }}>Section {{ sect }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Leave blank to export all sections</div>
+                    </div>
+                    
+                </div>
+
+                <div class="alert alert-info mt-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Note:</strong> You can export all students or filter by academic year and section. The Excel file will include Student ID, Name, Academic Year, Section, Email, Phone, and Date Created.
+                </div>
+
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <a href="{{ url_for('student_list') }}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-file-excel me-2"></i>Export to Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Preview Info -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Export Preview</h5>
+        </div>
+        <div class="card-body">
+            <p>Your Excel export will include:</p>
+            <ul>
+                <li><strong>Student ID:</strong> Unique identifier for each student</li>
+                <li><strong>Name:</strong> Full name of the student</li>
+                <li><strong>Academic Year:</strong> Current year level (1-4)</li>
+                <li><strong>Section:</strong> Class section assignment</li>
+                <li><strong>Email:</strong> Student contact email</li>
+                <li><strong>Phone:</strong> Student contact phone number</li>
+                <li><strong>Date Created:</strong> When the student record was added</li>
+            </ul>
+            <p class="text-muted mb-0">
+                <i class="fas fa-language me-2"></i>Arabic names will be displayed correctly in the Excel file.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-submit form when year changes to update section dropdown
+document.getElementById('year').addEventListener('change', function() {
+    const form = document.getElementById('exportForm');
+    const originalAction = form.action;
+    
+    // Temporarily change form action to current page for filtering
+    form.action = '{{ url_for("export_students_filters") }}';
+    
+    // Clear the section selection when year changes
+    document.getElementById('section').value = '';
+    
+    // Submit the form to reload with filtered sections
+    form.submit();
+    
+    // Restore original action (won't execute but good practice)
+    form.action = originalAction;
+});
+</script>
+{% endblock %}

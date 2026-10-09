@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}General Settings - Academic Management System{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Home</a></li>
+                    <li class="breadcrumb-item active">General Settings</li>
+                </ol>
+            </nav>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-success text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-cog me-2"></i>General System Settings
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-5">
+                            <h5 class="border-bottom pb-2 mb-4 text-primary">
+                                <i class="fas fa-microchip me-2"></i>Global AI Configuration
+                            </h5>
+                            
+                            <div class="mb-4">
+                                <label for="{{ form.ai_provider.id }}" class="form-label fw-bold">Preferred AI Provider</label>
+                                {{ form.ai_provider(class="form-select") }}
+                                <div class="form-text mt-2 text-muted">
+                                    Select which AI engine you want to use for generating tests and materials.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-5">
+                            <h5 class="border-bottom pb-2 mb-4 text-success">
+                                <i class="fab fa-openai me-2"></i>OpenAI Settings
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.openai_api_key.id }}" class="form-label fw-bold">OpenAI API Key</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-key text-muted"></i></span>
+                                    {{ form.openai_api_key(class="form-control" + (" is-invalid" if form.openai_api_key.errors else ""), id="openai_key_input") }}
+                                    <button class="btn btn-outline-primary" type="button" onclick="testKey('openai')">
+                                        <i class="fas fa-plug me-1"></i>Test
+                                    </button>
+                                    {% for error in form.openai_api_key.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div id="openai_test_result" class="mt-2 small"></div>
+                                <div class="form-text mt-2 text-muted">
+                                    Get your key from the <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener" class="text-decoration-none">OpenAI Dashboard</a>.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-5">
+                            <h5 class="border-bottom pb-2 mb-4 text-info">
+                                <i class="fas fa-gem me-2"></i>Google Gemini Settings
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.gemini_api_key.id }}" class="form-label fw-bold">Gemini API Key</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light"><i class="fas fa-key text-muted"></i></span>
+                                    {{ form.gemini_api_key(class="form-control" + (" is-invalid" if form.gemini_api_key.errors else ""), id="gemini_key_input") }}
+                                    <button class="btn btn-outline-info" type="button" onclick="testKey('gemini')">
+                                        <i class="fas fa-plug me-1"></i>Test
+                                    </button>
+                                    {% for error in form.gemini_api_key.errors %}
+                                        <div class="invalid-feedback">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                                <div id="gemini_test_result" class="mt-2 small"></div>
+                                <div class="form-text mt-2 text-muted">
+                                    Get your free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" class="text-decoration-none">Google AI Studio</a>.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning py-3">
+                            <div class="d-flex">
+                                <i class="fas fa-shield-alt fa-2x me-3 opacity-50"></i>
+                                <div>
+                                    <strong>Security Note:</strong> Keys are partially masked for your safety. To update a key, simply paste the new one and save.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                            <button type="submit" class="btn btn-success px-5">
+                                <i class="fas fa-save me-2"></i>Save All Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <p class="text-muted small">
+                    <i class="fas fa-lock me-1"></i> These settings are only accessible to administrators.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function testKey(provider) {
+    const inputId = provider === 'openai' ? 'openai_key_input' : 'gemini_key_input';
+    const resultId = provider === 'openai' ? 'openai_test_result' : 'gemini_test_result';
+    const key = document.getElementById(inputId).value;
+    const resultDiv = document.getElementById(resultId);
+    
+    resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testing connection...';
+    resultDiv.className = 'mt-2 small text-muted';
+    
+    fetch('{{ url_for("test_ai_key") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token() if csrf_token else "" }}'
+        },
+        body: JSON.stringify({
+            provider: provider,
+            api_key: key
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            resultDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + data.message;
+            resultDiv.className = 'mt-2 small text-success fw-bold';
+        } else {
+            resultDiv.innerHTML = '<i class="fas fa-times-circle me-2"></i>' + data.message;
+            resultDiv.className = 'mt-2 small text-danger fw-bold';
+        }
+    })
+    .catch(error => {
+        resultDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i>Error during test. Check server connectivity.';
+        resultDiv.className = 'mt-2 small text-danger fw-bold';
+    });
+}
+</script>
+{% endblock %}
