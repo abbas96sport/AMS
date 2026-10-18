@@ -924,10 +924,15 @@ def attendance_list():
         attendance = att_query.first()
         attendance_records[student.id] = attendance
     
+    records_count = sum(1 for att in attendance_records.values() if att is not None)
+    has_records = records_count > 0
+
     return render_template('attendance/mark.html', 
                          students=students, 
                          selected_date=selected_date,
                          attendance_records=attendance_records,
+                         records_count=records_count,
+                         has_records=has_records,
                          year=year, 
                          section=section,
                          search=search,
@@ -981,12 +986,20 @@ def mark_attendance():
 @login_required
 def cancel_attendance():
     """Cancel/undo all attendance records for a specific date and filter criteria."""
-    selected_date = datetime.strptime(request.form.get('date'), '%Y-%m-%d').date()
+    date_str = request.form.get('date')
+    if not date_str:
+        flash('Invalid date provided.', 'danger')
+        return redirect(url_for('attendance_list'))
+        
+    try:
+        selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        selected_date = date.today()
     
     # Get filter criteria
     year = request.form.get('year', type=int)
-    section = request.form.get('section')
-    search = request.form.get('search', '')
+    section = request.form.get('section') or None
+    search = request.form.get('search', '').strip()
     
     # Build student query with the same filters used when marking
     query = student_scope()
@@ -1005,15 +1018,23 @@ def cancel_attendance():
         deleted_count = Attendance.query.filter(
             Attendance.student_id.in_(student_ids),
             Attendance.date == selected_date,
-            Attendance.subject_id == None
-        ).delete(synchronize_session='fetch')
+            Attendance.subject_id.is_(None)
+        ).delete(synchronize_session=False)
         
         db.session.commit()
         flash(f'Attendance records cancelled successfully! ({deleted_count} records removed for {selected_date.strftime("%B %d, %Y")})', 'warning')
     else:
         flash('No students found matching the current filters.', 'info')
     
-    return redirect(url_for('attendance_list', year=year, section=section, search=search, date=selected_date.strftime('%Y-%m-%d')))
+    redirect_kwargs = {'date': selected_date.strftime('%Y-%m-%d')}
+    if year:
+        redirect_kwargs['year'] = year
+    if section:
+        redirect_kwargs['section'] = section
+    if search:
+        redirect_kwargs['search'] = search
+        
+    return redirect(url_for('attendance_list', **redirect_kwargs))
 
 @app.route('/attendance/history')
 @login_required
