@@ -153,10 +153,13 @@
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
-                    {% set has_records = attendance_records.values()|select('ne', none)|list|length > 0 if attendance_records else false %}
                     {% if has_records %}
                     <button type="button" class="btn btn-outline-danger btn-lg" data-bs-toggle="modal" data-bs-target="#cancelAttendanceModal">
-                        <i class="fas fa-undo me-2"></i>Cancel / Undo Attendance
+                        <i class="fas fa-undo me-2"></i>Cancel / Undo Attendance ({{ records_count }} saved)
+                    </button>
+                    {% else %}
+                    <button type="button" class="btn btn-outline-secondary btn-lg" disabled title="No attendance records saved for this date">
+                        <i class="fas fa-undo me-2"></i>Cancel / Undo Attendance (0 saved)
                     </button>
                     {% endif %}
                     <button type="submit" class="btn btn-primary btn-lg">
