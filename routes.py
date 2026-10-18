@@ -976,7 +976,7 @@ def mark_attendance():
     db.session.commit()
     flash('Attendance marked successfully!', 'success')
     return redirect(url_for('attendance_list', year=year, section=section, search=search, date=selected_date.strftime('%Y-%m-%d')))
-
+    
 @app.route('/attendance/cancel', methods=['POST'])
 @login_required
 def cancel_attendance():
@@ -1014,6 +1014,8 @@ def cancel_attendance():
         flash('No students found matching the current filters.', 'info')
     
     return redirect(url_for('attendance_list', year=year, section=section, search=search, date=selected_date.strftime('%Y-%m-%d')))
+
+
 
 @app.route('/attendance/history')
 @login_required
