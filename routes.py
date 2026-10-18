@@ -736,7 +736,9 @@ def import_students():
         
         try:
             from openpyxl import load_workbook
-            wb = load_workbook(file)
+            # Read file into BytesIO for reliable operation on all platforms
+            file_data = io.BytesIO(file.read())
+            wb = load_workbook(file_data)
             ws = wb.active
             
             imported_count = 0
@@ -807,6 +809,7 @@ def import_students():
                     # Create student
                     student = Student(
                         user_id=current_user.id,
+                        data_year=current_user.data_year,
                         student_id=student_id_str,
                         name=str(name).strip(),
                         email=str(email).strip(),
@@ -972,6 +975,44 @@ def mark_attendance():
     
     db.session.commit()
     flash('Attendance marked successfully!', 'success')
+    return redirect(url_for('attendance_list', year=year, section=section, search=search, date=selected_date.strftime('%Y-%m-%d')))
+
+@app.route('/attendance/cancel', methods=['POST'])
+@login_required
+def cancel_attendance():
+    """Cancel/undo all attendance records for a specific date and filter criteria."""
+    selected_date = datetime.strptime(request.form.get('date'), '%Y-%m-%d').date()
+    
+    # Get filter criteria
+    year = request.form.get('year', type=int)
+    section = request.form.get('section')
+    search = request.form.get('search', '')
+    
+    # Build student query with the same filters used when marking
+    query = student_scope()
+    if year:
+        query = query.filter(Student.academic_year == year)
+    if section:
+        query = query.filter(Student.section == section)
+    if search:
+        query = query.filter(Student.name.contains(search) | Student.student_id.contains(search))
+    
+    students = query.all()
+    student_ids = [s.id for s in students]
+    
+    if student_ids:
+        # Delete all attendance records for these students on this date (general attendance only)
+        deleted_count = Attendance.query.filter(
+            Attendance.student_id.in_(student_ids),
+            Attendance.date == selected_date,
+            Attendance.subject_id == None
+        ).delete(synchronize_session='fetch')
+        
+        db.session.commit()
+        flash(f'Attendance records cancelled successfully! ({deleted_count} records removed for {selected_date.strftime("%B %d, %Y")})', 'warning')
+    else:
+        flash('No students found matching the current filters.', 'info')
+    
     return redirect(url_for('attendance_list', year=year, section=section, search=search, date=selected_date.strftime('%Y-%m-%d')))
 
 @app.route('/attendance/history')
