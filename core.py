@@ -50,3 +50,4 @@ def create_app():
 
 # Singular app instance for the entire project
 app = create_app()
+
