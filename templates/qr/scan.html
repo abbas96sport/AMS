@@ -168,8 +168,7 @@
 <script>
 let html5QrCode = null;
 let isScanning = false;
-let lastScannedCode = null;
-let scanCooldown = false;
+let inFlight = new Set();  // Only block codes whose API call is still pending
 
 // Success beep sound
 function playSuccessSound() {
@@ -233,18 +232,14 @@ function updateLastScanned(name, id, time) {
 }
 
 async function onScanSuccess(decodedText) {
-    // Prevent duplicate scans within 3 seconds
-    if (scanCooldown || decodedText === lastScannedCode) {
+    // Only skip if this exact code's API call is still pending
+    if (inFlight.has(decodedText)) {
         return;
     }
     
-    scanCooldown = true;
-    lastScannedCode = decodedText;
+    inFlight.add(decodedText);
     
-    // Get selected date from date picker
     const scanDate = document.getElementById('scan-date').value;
-    
-    // Get CSRF token
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     
     try {
@@ -266,11 +261,8 @@ async function onScanSuccess(decodedText) {
             playSuccessSound();
             showAlert('success', data.message);
             updateLastScanned(data.student_name, data.student_id, data.time);
-            
-            // Update table if visible
             updateAttendanceTable(data);
         } else if (data.status === 'duplicate') {
-            playErrorSound();
             showAlert('duplicate', data.message);
         } else {
             playErrorSound();
@@ -281,11 +273,8 @@ async function onScanSuccess(decodedText) {
         showAlert('error', 'Failed to record attendance: ' + error.message);
     }
     
-    // Reset cooldown after 2 seconds
-    setTimeout(() => {
-        scanCooldown = false;
-        lastScannedCode = null;
-    }, 2000);
+    // Immediately allow this code to be scanned again
+    inFlight.delete(decodedText);
 }
 
 function updateAttendanceTable(data) {
@@ -314,8 +303,8 @@ function startScanner() {
     html5QrCode.start(
         { facingMode: "environment" },
         {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
+        fps: 30,
+            qrbox: { width: 280, height: 280 },
             aspectRatio: 1.0
         },
         onScanSuccess,
