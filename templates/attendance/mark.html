@@ -153,11 +153,64 @@
                 </div>
 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+                    {% set has_records = attendance_records.values()|select('ne', none)|list|length > 0 if attendance_records else false %}
+                    {% if has_records %}
+                    <button type="button" class="btn btn-outline-danger btn-lg" data-bs-toggle="modal" data-bs-target="#cancelAttendanceModal">
+                        <i class="fas fa-undo me-2"></i>Cancel / Undo Attendance
+                    </button>
+                    {% endif %}
                     <button type="submit" class="btn btn-primary btn-lg">
                         <i class="fas fa-save me-2"></i>Save Attendance
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Cancel Attendance Confirmation Modal -->
+    <div class="modal fade" id="cancelAttendanceModal" tabindex="-1" aria-labelledby="cancelAttendanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="cancelAttendanceModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Cancel Attendance Records
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                        <h5>Are you sure you want to cancel all attendance records?</h5>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This will <strong>permanently delete</strong> all attendance entries for
+                        <strong>{{ selected_date.strftime('%B %d, %Y') }}</strong>
+                        {% if year %} (Year {{ year }}){% endif %}
+                        {% if section %} (Section {{ section }}){% endif %}.
+                        <br><br>
+                        All students will revert to <span class="badge bg-secondary">Not marked</span> status for this date.
+                    </div>
+                    <p class="text-muted text-center mb-0">
+                        <small>This action cannot be undone. You will need to re-mark attendance if needed.</small>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>Keep Records
+                    </button>
+                    <form method="POST" action="{{ url_for('cancel_attendance') }}" class="d-inline">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}">
+                        <input type="hidden" name="year" value="{{ year or '' }}">
+                        <input type="hidden" name="section" value="{{ section or '' }}">
+                        <input type="hidden" name="search" value="{{ search or '' }}">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-undo me-2"></i>Yes, Cancel All Records
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
     {% else %}
